@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-canvas: #f3f7f4;
+  --color-surface: #fcfffe;
+  --color-ink: #0c2b39;
+  --color-muted: #58707b;
+  --color-brand: #1290a8;
+  --color-brand-soft: #d4f2f8;
+  --color-brand-contrast: #ffffff;
+  --color-accent: #ffc5ad;
+  --color-accent-soft: #ffe8dc;
+  --color-danger: #d24f55;
+
+  --font-sans: "Space Grotesk";
+  --font-serif: "Source Serif 4";
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--color-ink);
+  background:
+    radial-gradient(circle at 15% 20%, rgba(18, 144, 168, 0.15), transparent 40%),
+    radial-gradient(circle at 85% 10%, rgba(255, 197, 173, 0.28), transparent 40%),
+    var(--color-canvas);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  animation: rise 0.45s ease-out both;
+}

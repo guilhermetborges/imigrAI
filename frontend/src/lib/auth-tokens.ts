@@ -1,0 +1,59 @@
+import type { TokenPairResponse } from "@/types/api";
+
+const ACCESS_KEY = "imigrai_access_token";
+const REFRESH_KEY = "imigrai_refresh_token";
+const ACCESS_COOKIE = "imigrai_access_token";
+
+function isBrowser(): boolean {
+  return typeof window !== "undefined";
+}
+
+export function getAccessToken(): string | null {
+  if (!isBrowser()) {
+    return null;
+  }
+  return window.localStorage.getItem(ACCESS_KEY);
+}
+
+export function getRefreshToken(): string | null {
+  if (!isBrowser()) {
+    return null;
+  }
+  return window.localStorage.getItem(REFRESH_KEY);
+}
+
+function setAccessCookie(token: string): void {
+  if (!isBrowser()) {
+    return;
+  }
+
+  document.cookie = `${ACCESS_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=1800; SameSite=Lax`;
+}
+
+function clearAccessCookie(): void {
+  if (!isBrowser()) {
+    return;
+  }
+
+  document.cookie = `${ACCESS_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
+export function setAuthTokens(tokens: TokenPairResponse): void {
+  if (!isBrowser()) {
+    return;
+  }
+
+  window.localStorage.setItem(ACCESS_KEY, tokens.access_token);
+  window.localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
+  setAccessCookie(tokens.access_token);
+}
+
+export function clearAuthTokens(): void {
+  if (!isBrowser()) {
+    return;
+  }
+
+  window.localStorage.removeItem(ACCESS_KEY);
+  window.localStorage.removeItem(REFRESH_KEY);
+  clearAccessCookie();
+}

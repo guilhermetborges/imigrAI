@@ -1,0 +1,85 @@
+Metadata-Version: 2.4
+Name: imigrai-api
+Version: 0.1.0
+Summary: Backend bootstrap for imigrai SaaS
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: alembic>=1.13.2
+Requires-Dist: asyncpg>=0.29.0
+Requires-Dist: celery[redis]>=5.4.0
+Requires-Dist: email-validator>=2.2.0
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: psycopg[binary]>=3.2.1
+Requires-Dist: pwdlib[argon2]>=0.3.0
+Requires-Dist: pydantic-settings>=2.4.0
+Requires-Dist: python-json-logger>=2.0.7
+Requires-Dist: python-jose[cryptography]>=3.3.0
+Requires-Dist: redis>=5.0.7
+Requires-Dist: sqlalchemy[asyncio]>=2.0.34
+Requires-Dist: uvicorn[standard]>=0.30.6
+Provides-Extra: dev
+Requires-Dist: aiosqlite>=0.20.0; extra == "dev"
+Requires-Dist: black>=24.8.0; extra == "dev"
+Requires-Dist: httpx>=0.27.2; extra == "dev"
+Requires-Dist: pre-commit>=3.8.0; extra == "dev"
+Requires-Dist: pytest>=8.3.2; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.24.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0.0; extra == "dev"
+Requires-Dist: ruff>=0.6.4; extra == "dev"
+
+# imigrai backend bootstrap
+
+Bootstrap do backend FastAPI para o SaaS de imigracao.
+
+## Stack
+
+- Python 3.12+
+- FastAPI
+- SQLAlchemy 2 (async)
+- Alembic
+- PostgreSQL
+- Redis
+- Celery + Celery Beat
+- uv
+- Docker Compose
+
+## Estrutura principal
+
+- `app/api`: roteadores HTTP (health + v1)
+- `app/core`: config, seguranca, observabilidade
+- `app/db`: base, sessao e migracoes
+- `apps/*`: dominios modulares
+
+## Subir local com Docker
+
+```bash
+docker compose up --build
+```
+
+Endpoints:
+
+- `GET /health/live`
+- `GET /health/ready`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `GET /api/v1/auth/me`
+- `GET /openapi.json`
+- `GET /docs`
+- `GET /redoc`
+
+## Migrações
+
+```bash
+alembic upgrade head
+```
+
+## Qualidade
+
+```bash
+uv pip install -e .[dev]
+ruff check .
+black --check .
+pytest
+pre-commit install
+```

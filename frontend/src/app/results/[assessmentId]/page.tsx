@@ -1,18 +1,23 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
 
+import { GapsList } from "@/components/assessment/gaps-list";
+import { ScoreCard } from "@/components/assessment/score-card";
 import { AuthGuard } from "@/components/guards/auth-guard";
 import { PrivateShell } from "@/components/layout/private-shell";
+import { UpgradeModal } from "@/components/modals/upgrade-modal";
+import { CardSkeleton, ListSkeleton } from "@/components/states/loading-skeletons";
 import { PageState } from "@/components/states/page-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getApiErrorMessage } from "@/lib/api/client";
-import { assessmentsApi, billingApi, roadmapsApi } from "@/lib/api/endpoints";
-import { formatDate, toNumber } from "@/lib/formatters";
-import { generateIdempotencyKey } from "@/lib/utils";
+import { useAssessmentBreakdown, useAssessmentStatus } from "@/hooks/use-assessment";
+import { useCreateRoadmap } from "@/hooks/use-roadmap";
+import { useSubscription } from "@/hooks/use-subscription";
+import { getApiErrorMessage, isUpgradeRequiredError } from "@/lib/api/client";
+import { trackEvent } from "@/lib/tracking";
+import { toNumber } from "@/lib/formatters";
 
 interface ResultsPageProps {
   params: {
@@ -24,49 +29,18 @@ const terminalStatuses = ["completed", "failed", "canceled"];
 
 export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
   const router = useRouter();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const assessmentId = params.assessmentId;
 
-  const assessmentStatusQuery = useQuery({
-    queryKey: ["assessment-status", assessmentId],
-    queryFn: () => assessmentsApi.getStatus(assessmentId),
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      if (status && terminalStatuses.includes(status)) {
-        return false;
-      }
-      return 3000;
-    }
-  });
+  const assessmentStatusQuery = useAssessmentStatus(assessmentId, true);
 
-  const breakdownQuery = useQuery({
-    queryKey: ["assessment-breakdown", assessmentId],
-    queryFn: () => assessmentsApi.getBreakdown(assessmentId),
-    enabled: assessmentStatusQuery.data?.status === "completed"
-  });
+  const breakdownQuery = useAssessmentBreakdown(
+    assessmentId,
+    assessmentStatusQuery.data?.status === "completed"
+  );
 
-  const entitlementsQuery = useQuery({
-    queryKey: ["entitlements", "me"],
-    queryFn: billingApi.getMyEntitlements
-  });
-
-  const createRoadmapMutation = useMutation({
-    mutationFn: () =>
-      roadmapsApi.create({
-        assessment_id: assessmentId,
-        idempotency_key: generateIdempotencyKey()
-      }),
-    onSuccess: (data) => {
-      router.push(`/roadmaps/${data.roadmap_id}`);
-    }
-  });
-
-  const canGenerateRoadmap = useMemo(() => {
-    return Boolean(
-      entitlementsQuery.data?.entitlements.some(
-        (entitlement) => entitlement.feature_key === "roadmap.pro" && entitlement.is_enabled
-      )
-    );
-  }, [entitlementsQuery.data]);
+  const { hasRoadmapAccess } = useSubscription();
+  const createRoadmapMutation = useCreateRoadmap();
 
   const groupedBreakdown = useMemo(() => {
     if (!breakdownQuery.data) {
@@ -92,14 +66,40 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
     return Array.from(map.values()).sort((a, b) => b.score - a.score);
   }, [breakdownQuery.data]);
 
+  const handleRoadmapAction = (): void => {
+    if (!hasRoadmapAccess) {
+      trackEvent("roadmap_upgrade_clicked", {
+        source: "results_cta",
+        assessment_id: assessmentId
+      });
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    createRoadmapMutation.mutate(
+      { assessmentId },
+      {
+        onSuccess: (data) => {
+          router.push(`/roadmaps/${data.roadmap_id}`);
+        },
+        onError: (error) => {
+          if (isUpgradeRequiredError(error)) {
+            trackEvent("roadmap_upgrade_clicked", {
+              source: "results_error",
+              assessment_id: assessmentId
+            });
+            setShowUpgradeModal(true);
+          }
+        }
+      }
+    );
+  };
+
   if (assessmentStatusQuery.isLoading) {
     return (
       <AuthGuard>
         <PrivateShell>
-          <PageState
-            title="Buscando avaliacao"
-            description="Carregando status inicial do assessment selecionado."
-          />
+          <CardSkeleton />
         </PrivateShell>
       </AuthGuard>
     );
@@ -120,6 +120,21 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
     );
   }
 
+  if (assessmentStatusQuery.timedOut) {
+    return (
+      <AuthGuard>
+        <PrivateShell>
+          <PageState
+            title="Processamento demorando mais que o esperado"
+            description="Ainda estamos processando seu score. Voce pode tentar novamente agora ou voltar ao dashboard."
+            actionLabel="Tentar novamente"
+            onAction={() => assessmentStatusQuery.refetch()}
+          />
+        </PrivateShell>
+      </AuthGuard>
+    );
+  }
+
   const status = assessmentStatusQuery.data?.status;
 
   if (status && !terminalStatuses.includes(status)) {
@@ -128,7 +143,7 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
         <PrivateShell>
           <PageState
             title="Score em processamento"
-            description={`Status atual: ${status}. Estamos atualizando automaticamente.`}
+            description={`Status atual: ${status}. Polling ativo com backoff progressivo.`}
           />
         </PrivateShell>
       </AuthGuard>
@@ -154,10 +169,16 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
     return (
       <AuthGuard>
         <PrivateShell>
-          <PageState
-            title="Montando breakdown"
-            description="Seu score foi concluido e estamos carregando os criterios detalhados."
-          />
+          <section className="space-y-4">
+            <CardSkeleton />
+            <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+              <ListSkeleton rows={5} />
+              <div className="space-y-4">
+                <CardSkeleton />
+                <CardSkeleton />
+              </div>
+            </div>
+          </section>
         </PrivateShell>
       </AuthGuard>
     );
@@ -197,24 +218,18 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
     <AuthGuard>
       <PrivateShell>
         <section className="space-y-4 reveal">
-          <Card className="bg-gradient-to-r from-brand-soft via-white to-accent-soft">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted">Resultado do score</p>
-            <h1 className="mt-2 font-serif text-5xl">{score.toFixed(1)}</h1>
-            <p className="mt-2 text-sm text-muted">Faixa: {breakdownQuery.data.faixa}</p>
-            <p className="mt-1 text-xs text-muted">
-              Ultima atualizacao: {formatDate(assessmentStatusQuery.data?.completed_at ?? null)}
-            </p>
-          </Card>
+          <ScoreCard
+            score={score}
+            faixa={breakdownQuery.data.faixa}
+            completedAt={assessmentStatusQuery.data?.completed_at ?? null}
+          />
 
           <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
             <Card>
               <h2 className="font-serif text-2xl">Breakdown por criterio</h2>
               <div className="mt-4 space-y-3">
                 {groupedBreakdown.map((criterion) => (
-                  <div
-                    key={criterion.code}
-                    className="rounded-xl border border-ink/10 bg-white p-4 text-sm"
-                  >
+                  <div key={criterion.code} className="rounded-xl border border-ink/10 bg-white p-4 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold">{criterion.code}</p>
                       <p className="text-brand">{criterion.score.toFixed(2)} pts</p>
@@ -228,23 +243,12 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
             </Card>
 
             <div className="space-y-4">
-              <Card>
-                <h3 className="font-semibold">Gaps criticos</h3>
-                {breakdownQuery.data.gaps_criticos.length ? (
-                  <ul className="mt-3 space-y-2 text-sm text-muted">
-                    {breakdownQuery.data.gaps_criticos.map((gap) => (
-                      <li key={gap}>- {gap}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-3 text-sm text-muted">Nenhum gap critico detectado.</p>
-                )}
-              </Card>
+              <GapsList gaps={breakdownQuery.data.gaps_criticos} />
 
               <Card>
                 <h3 className="font-semibold">Proxima acao</h3>
                 <p className="mt-2 text-sm text-muted">
-                  {canGenerateRoadmap
+                  {hasRoadmapAccess
                     ? "Voce tem acesso Pro para gerar roadmap contextual deste score."
                     : "Roadmap completo disponivel no plano Pro."}
                 </p>
@@ -252,33 +256,43 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
                 <Button
                   className="mt-4"
                   fullWidth
-                  variant={canGenerateRoadmap ? "primary" : "secondary"}
+                  variant={hasRoadmapAccess ? "primary" : "secondary"}
                   disabled={createRoadmapMutation.isPending}
-                  onClick={() => {
-                    if (!canGenerateRoadmap) {
-                      router.push("/pricing");
-                      return;
-                    }
-
-                    createRoadmapMutation.mutate();
-                  }}
+                  onClick={handleRoadmapAction}
                 >
-                  {canGenerateRoadmap
+                  {hasRoadmapAccess
                     ? createRoadmapMutation.isPending
                       ? "Gerando roadmap..."
                       : "Gerar roadmap Pro"
-                    : "Desbloquear roadmap Pro"}
+                    : "Fazer upgrade para gerar roadmap"}
                 </Button>
 
                 {createRoadmapMutation.isError ? (
-                  <p className="mt-2 text-xs text-danger">
-                    {getApiErrorMessage(createRoadmapMutation.error)}
-                  </p>
+                  <div className="mt-2 rounded-lg border border-danger/30 bg-danger/5 p-2 text-xs text-danger">
+                    <p>{getApiErrorMessage(createRoadmapMutation.error)}</p>
+                    <Button
+                      className="mt-2"
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleRoadmapAction}
+                    >
+                      Tentar novamente
+                    </Button>
+                  </div>
                 ) : null}
               </Card>
             </div>
           </div>
         </section>
+
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          onUpgrade={() => {
+            setShowUpgradeModal(false);
+            router.push("/pricing");
+          }}
+        />
       </PrivateShell>
     </AuthGuard>
   );

@@ -59,6 +59,10 @@ export interface AssessmentCreate {
   idempotency_key: string;
 }
 
+export interface ProfileCreateRequest {
+  profile_json: Record<string, unknown>;
+}
+
 export interface AssessmentQueuedRead {
   assessment_id: string;
   status: ApiStatus;
@@ -70,6 +74,8 @@ export interface AssessmentStatusRead {
   status: ApiStatus;
   completed_at: string | null;
   job_id: string | null;
+  created_at?: string | null;
+  program_id?: string | null;
 }
 
 export interface ProgramVersionUsedRead {
@@ -121,6 +127,10 @@ export interface RoadmapStatusRead {
   completed_at: string | null;
   error: string | null;
   job_id: string | null;
+}
+
+export interface RoadmapStepsEnvelope {
+  steps: RoadmapStepRead[];
 }
 
 export interface RoadmapRead {

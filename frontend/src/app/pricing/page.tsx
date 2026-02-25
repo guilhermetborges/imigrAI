@@ -1,51 +1,21 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { CardSkeleton } from "@/components/states/loading-skeletons";
+import { PageState } from "@/components/states/page-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { billingApi } from "@/lib/api/endpoints";
+import { useSubscription } from "@/hooks/use-subscription";
 import { getApiErrorMessage } from "@/lib/api/client";
-
-const plans = [
-  {
-    name: "Free",
-    price: "R$ 0",
-    features: ["3 assessments/mes", "Score + breakdown", "Sem roadmap IA"]
-  },
-  {
-    name: "Pro",
-    price: "R$ 149/mes",
-    features: [
-      "Assessments ilimitados",
-      "Roadmaps completos com checklist",
-      "Processamento prioritario"
-    ]
-  }
-];
+import { formatCurrencyBRL } from "@/lib/formatters";
 
 export default function PricingPage(): JSX.Element {
   const { status } = useAuth();
   const router = useRouter();
-
-  const checkoutMutation = useMutation({
-    mutationFn: async () => {
-      if (typeof window === "undefined") {
-        return;
-      }
-
-      const session = await billingApi.createCheckoutSession({
-        plan_code: "pro",
-        success_url: `${window.location.origin}/settings/subscription?success=1`,
-        cancel_url: `${window.location.origin}/pricing?canceled=1`
-      });
-
-      window.location.href = session.checkout_url;
-    }
-  });
+  const { plansQuery, checkoutMutation } = useSubscription({ includePlans: true });
 
   const handleUpgrade = (): void => {
     if (status !== "authenticated") {
@@ -53,7 +23,22 @@ export default function PricingPage(): JSX.Element {
       return;
     }
 
-    checkoutMutation.mutate();
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    checkoutMutation.mutate(
+      {
+        planCode: "pro",
+        successUrl: `${window.location.origin}/settings/subscription?success=1`,
+        cancelUrl: `${window.location.origin}/pricing?canceled=1`
+      },
+      {
+        onSuccess: (session) => {
+          window.location.href = session.checkout_url;
+        }
+      }
+    );
   };
 
   return (
@@ -66,38 +51,60 @@ export default function PricingPage(): JSX.Element {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {plans.map((plan) => (
-          <Card key={plan.name} className={plan.name === "Pro" ? "border-brand" : undefined}>
-            <h2 className="font-serif text-3xl">{plan.name}</h2>
-            <p className="mt-1 text-2xl font-semibold">{plan.price}</p>
-            <ul className="mt-5 space-y-2 text-sm text-muted">
-              {plan.features.map((feature) => (
-                <li key={feature}>- {feature}</li>
-              ))}
-            </ul>
-            {plan.name === "Pro" ? (
-              <Button
-                className="mt-6"
-                fullWidth
-                onClick={handleUpgrade}
-                disabled={checkoutMutation.isPending}
-              >
-                {checkoutMutation.isPending ? "Redirecionando..." : "Assinar Pro"}
-              </Button>
-            ) : (
-              <Link href="/onboarding" className="mt-6 block">
-                <Button className="w-full" variant="ghost">
-                  Usar Free
+      {plansQuery.isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      ) : null}
+
+      {plansQuery.isError ? (
+        <PageState
+          title="Erro ao buscar planos"
+          description={getApiErrorMessage(plansQuery.error)}
+          actionLabel="Tentar novamente"
+          onAction={() => plansQuery.refetch()}
+        />
+      ) : null}
+
+      {plansQuery.data?.length ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {plansQuery.data.map((plan) => (
+            <Card key={plan.id} className={plan.code === "pro" ? "border-brand" : undefined}>
+              <h2 className="font-serif text-3xl">{plan.name}</h2>
+              <p className="mt-1 text-2xl font-semibold">
+                {plan.is_free ? "R$ 0" : `${formatCurrencyBRL(plan.price_cents / 100)}/${plan.billing_interval}`}
+              </p>
+              <p className="mt-3 text-sm text-muted">{plan.description ?? "Plano sem descricao."}</p>
+
+              {plan.code === "pro" ? (
+                <Button
+                  className="mt-6"
+                  fullWidth
+                  onClick={handleUpgrade}
+                  disabled={checkoutMutation.isPending}
+                >
+                  {checkoutMutation.isPending ? "Redirecionando..." : "Assinar Pro"}
                 </Button>
-              </Link>
-            )}
-          </Card>
-        ))}
-      </div>
+              ) : (
+                <Link href="/onboarding" className="mt-6 block">
+                  <Button className="w-full" variant="ghost">
+                    Usar Free
+                  </Button>
+                </Link>
+              )}
+            </Card>
+          ))}
+        </div>
+      ) : null}
 
       {checkoutMutation.isError ? (
-        <p className="text-sm text-danger">{getApiErrorMessage(checkoutMutation.error)}</p>
+        <div className="rounded-xl border border-danger/30 bg-danger/5 p-3">
+          <p className="text-sm text-danger">{getApiErrorMessage(checkoutMutation.error)}</p>
+          <Button className="mt-2" variant="ghost" size="sm" onClick={handleUpgrade}>
+            Tentar novamente
+          </Button>
+        </div>
       ) : null}
     </section>
   );

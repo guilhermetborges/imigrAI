@@ -45,6 +45,10 @@ Endpoints:
 - `GET /api/v1/roadmaps/{roadmap_id}/status`
 - `GET /api/v1/roadmaps/{roadmap_id}`
 - `GET /api/v1/jobs/{job_id}` (polling)
+- `POST /api/v1/ingestion/source-registry/seed` (interno, protegido por `x-internal-token`)
+- `GET /api/v1/ingestion/source-registry` (interno)
+- `POST /api/v1/ingestion/reprocess-source` (interno, async/sync)
+- `GET /api/v1/ingestion/runs/{run_id}` (interno)
 - `GET /openapi.json`
 - `GET /docs`
 - `GET /redoc`
@@ -61,6 +65,20 @@ Fixtures iniciais para 3 paises (`CA`, `AU`, `PT`):
 
 ```bash
 python scripts/seed_mvp_rules.py
+```
+
+## Ingestao automatizada (Bronze/Silver/Gold)
+
+- Seed do `SourceRegistry` com fontes oficiais:
+
+```bash
+python scripts/ingestion_cli.py seed-sources
+```
+
+- Reprocessar fonte especifica:
+
+```bash
+python scripts/ingestion_cli.py reprocess-source --source-key uk_gov_immigration --sync
 ```
 
 ## Score Formula

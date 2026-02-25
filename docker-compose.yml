@@ -14,7 +14,7 @@ services:
 
   worker:
     build: .
-    command: celery -A app.core.celery_app:celery_app worker --loglevel=info -Q default,score_queue,roadmap_queue
+    command: celery -A app.core.celery_app:celery_app worker --loglevel=info -Q default,score_queue,roadmap_queue,ingestion_queue
     env_file:
       - .env
     depends_on:

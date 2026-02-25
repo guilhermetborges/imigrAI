@@ -86,3 +86,16 @@ export function getApiErrorMessage(error: unknown): string {
 
   return "Erro inesperado ao processar solicitacao.";
 }
+
+export function getApiErrorStatus(error: unknown): number | null {
+  if (!axios.isAxiosError(error)) {
+    return null;
+  }
+
+  return error.response?.status ?? null;
+}
+
+export function isUpgradeRequiredError(error: unknown): boolean {
+  const status = getApiErrorStatus(error);
+  return status === 402 || status === 403;
+}

@@ -16,7 +16,15 @@ from apps.immigration_rules.models import (
     RuleGroup,
     RuleOutcome,
 )
-from apps.ingestion.models import SourceDocument, SourceExtraction
+from apps.ingestion.models import (
+    BronzeDocument,
+    IngestionRun,
+    IngestionRunItem,
+    SilverSection,
+    SourceDocument,
+    SourceExtraction,
+    SourceRegistry,
+)
 from apps.roadmaps.models import Roadmap, RoadmapStep
 
 __all__ = [
@@ -33,6 +41,11 @@ __all__ = [
     "ProgramVersion",
     "Roadmap",
     "RoadmapStep",
+    "SourceRegistry",
+    "IngestionRun",
+    "IngestionRunItem",
+    "BronzeDocument",
+    "SilverSection",
     "RuleCondition",
     "RuleGroup",
     "RuleOutcome",

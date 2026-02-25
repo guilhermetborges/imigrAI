@@ -1,52 +1,51 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 
 import { AuthGuard } from "@/components/guards/auth-guard";
 import { PrivateShell } from "@/components/layout/private-shell";
+import { CardSkeleton } from "@/components/states/loading-skeletons";
 import { PageState } from "@/components/states/page-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useSubscription } from "@/hooks/use-subscription";
 import { getApiErrorMessage } from "@/lib/api/client";
-import { billingApi } from "@/lib/api/endpoints";
 import { formatDate } from "@/lib/formatters";
 
 export default function SubscriptionSettingsPage(): JSX.Element {
   const searchParams = useSearchParams();
-
-  const entitlementsQuery = useQuery({
-    queryKey: ["entitlements", "me"],
-    queryFn: billingApi.getMyEntitlements
-  });
-
-  const checkoutMutation = useMutation({
-    mutationFn: async () => {
-      if (typeof window === "undefined") {
-        return;
-      }
-
-      const checkout = await billingApi.createCheckoutSession({
-        plan_code: "pro",
-        success_url: `${window.location.origin}/settings/subscription?success=1`,
-        cancel_url: `${window.location.origin}/settings/subscription?canceled=1`
-      });
-
-      window.location.href = checkout.checkout_url;
-    }
-  });
+  const { entitlementsQuery, checkoutMutation } = useSubscription();
 
   const success = searchParams.get("success") === "1";
   const canceled = searchParams.get("canceled") === "1";
+
+  const handleUpgrade = (): void => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    checkoutMutation.mutate(
+      {
+        planCode: "pro",
+        successUrl: `${window.location.origin}/settings/subscription?success=1`,
+        cancelUrl: `${window.location.origin}/settings/subscription?canceled=1`
+      },
+      {
+        onSuccess: (checkout) => {
+          window.location.href = checkout.checkout_url;
+        }
+      }
+    );
+  };
 
   return (
     <AuthGuard>
       <PrivateShell>
         {entitlementsQuery.isLoading ? (
-          <PageState
-            title="Carregando assinatura"
-            description="Consultando plano atual e detalhes da assinatura."
-          />
+          <section className="space-y-4">
+            <CardSkeleton />
+            <CardSkeleton />
+          </section>
         ) : entitlementsQuery.isError ? (
           <PageState
             title="Erro ao carregar assinatura"
@@ -82,7 +81,7 @@ export default function SubscriptionSettingsPage(): JSX.Element {
               {!entitlementsQuery.data?.plan || entitlementsQuery.data.plan.is_free ? (
                 <Button
                   className="mt-6"
-                  onClick={() => checkoutMutation.mutate()}
+                  onClick={handleUpgrade}
                   disabled={checkoutMutation.isPending}
                 >
                   {checkoutMutation.isPending ? "Abrindo checkout..." : "Fazer upgrade para Pro"}
@@ -91,22 +90,38 @@ export default function SubscriptionSettingsPage(): JSX.Element {
             </Card>
 
             <Card>
-              <h2 className="font-semibold">Entitlements ativos</h2>
+              <h2 className="font-semibold">Limites e entitlements</h2>
               {entitlementsQuery.data?.entitlements.length ? (
                 <ul className="mt-3 space-y-2 text-sm text-muted">
                   {entitlementsQuery.data.entitlements.map((entitlement) => (
                     <li key={entitlement.id}>
                       {entitlement.feature_key} | habilitado: {entitlement.is_enabled ? "sim" : "nao"}
+                      {entitlement.limit_value !== null ? ` | limite: ${entitlement.limit_value}` : ""}
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p className="mt-3 text-sm text-muted">Nenhum entitlement retornado.</p>
               )}
+
+              {entitlementsQuery.data?.usage_counters.length ? (
+                <ul className="mt-4 space-y-2 text-sm text-muted">
+                  {entitlementsQuery.data.usage_counters.map((counter) => (
+                    <li key={counter.id}>
+                      Uso {counter.feature_key}: {counter.used_count}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </Card>
 
             {checkoutMutation.isError ? (
-              <p className="text-sm text-danger">{getApiErrorMessage(checkoutMutation.error)}</p>
+              <div className="rounded-xl border border-danger/30 bg-danger/5 p-3">
+                <p className="text-sm text-danger">{getApiErrorMessage(checkoutMutation.error)}</p>
+                <Button className="mt-2" size="sm" variant="ghost" onClick={handleUpgrade}>
+                  Tentar novamente
+                </Button>
+              </div>
             ) : null}
           </section>
         )}

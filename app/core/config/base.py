@@ -24,6 +24,9 @@ class BaseConfig(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://imigrai:imigrai@postgres:5432/imigrai"
     alembic_database_url: str = "postgresql+psycopg://imigrai:imigrai@postgres:5432/imigrai"
+    database_pool_size: int = 10
+    database_max_overflow: int = 20
+    database_pool_timeout_seconds: int = 30
     redis_url: str = "redis://redis:6379/0"
 
     celery_broker_url: str = "redis://redis:6379/0"
@@ -34,6 +37,10 @@ class BaseConfig(BaseSettings):
     roadmap_task_max_retries: int = 3
     roadmap_task_soft_time_limit_seconds: int = 90
     roadmap_task_time_limit_seconds: int = 120
+    ingestion_task_max_retries: int = 3
+    ingestion_task_soft_time_limit_seconds: int = 120
+    ingestion_task_time_limit_seconds: int = 180
+    ingestion_retry_backoff_base_seconds: int = 2
 
     jwt_secret_key: str = "change-me"
     jwt_algorithm: str = "HS256"
@@ -63,6 +70,19 @@ class BaseConfig(BaseSettings):
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
     stripe_pro_price_id: str | None = None
+    supabase_project_url: str | None = None
+    supabase_service_role_key: str | None = None
+
+    ingestion_internal_token: str | None = None
+    ingestion_user_agent: str = "imigrAI-ingestion-bot/1.0"
+    ingestion_fetch_timeout_seconds: int = 40
+    ingestion_enforce_robots: bool = True
+    ingestion_bronze_bucket: str = "immigration-bronze"
+    ingestion_local_fallback_dir: str = ".cache/ingestion"
+    ingestion_gateway_max_retries: int = 3
+    ingestion_gateway_base_backoff_seconds: float = 0.5
+    ingestion_quarantine_after_failures: int = 3
+    ingestion_quarantine_hours: int = 24
 
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000"]
 

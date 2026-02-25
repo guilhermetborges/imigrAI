@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { type FieldPath, useForm } from "react-hook-form";
@@ -9,15 +9,18 @@ import { z } from "zod";
 
 import { AuthGuard } from "@/components/guards/auth-guard";
 import { PrivateShell } from "@/components/layout/private-shell";
+import { UpgradeModal } from "@/components/modals/upgrade-modal";
+import { CardSkeleton } from "@/components/states/loading-skeletons";
 import { PageState } from "@/components/states/page-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select } from "@/components/ui/select";
-import { getApiErrorMessage } from "@/lib/api/client";
-import { assessmentsApi, immigrationApi } from "@/lib/api/endpoints";
-import { generateIdempotencyKey } from "@/lib/utils";
+import { useCreateAssessment } from "@/hooks/use-assessment";
+import { getApiErrorMessage, isUpgradeRequiredError } from "@/lib/api/client";
+import { immigrationApi } from "@/lib/api/endpoints";
+import { trackEvent } from "@/lib/tracking";
 
 const educationOptions = [
   { value: "", label: "Selecione" },
@@ -75,15 +78,30 @@ const steps = [
   }
 ] as const;
 
+function toProfileJson(values: OnboardingValues): Record<string, unknown> {
+  return {
+    age: values.age,
+    education: values.education,
+    occupation: values.occupation,
+    years_experience: values.yearsExperience,
+    languages: values.languages.split(",").map((item) => item.trim()),
+    language_level: values.languageLevel,
+    income_current: values.income,
+    countries_interest: values.countriesInterest.split(",").map((item) => item.trim())
+  };
+}
+
 export default function OnboardingPage(): JSX.Element {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const {
     register,
     handleSubmit,
     trigger,
     setValue,
+    getValues,
     formState: { errors }
   } = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
@@ -99,6 +117,10 @@ export default function OnboardingPage(): JSX.Element {
       programId: ""
     }
   });
+
+  useEffect(() => {
+    trackEvent("onboarding_started");
+  }, []);
 
   const programsQuery = useQuery({
     queryKey: ["programs"],
@@ -129,26 +151,7 @@ export default function OnboardingPage(): JSX.Element {
     ];
   }, [programsQuery.data]);
 
-  const createAssessmentMutation = useMutation({
-    mutationFn: async (values: OnboardingValues) =>
-      assessmentsApi.create({
-        program_id: values.programId,
-        idempotency_key: generateIdempotencyKey(),
-        profile_json: {
-          age: values.age,
-          education: values.education,
-          occupation: values.occupation,
-          years_experience: values.yearsExperience,
-          languages: values.languages.split(",").map((item) => item.trim()),
-          language_level: values.languageLevel,
-          income_current: values.income,
-          countries_interest: values.countriesInterest.split(",").map((item) => item.trim())
-        }
-      }),
-    onSuccess: (data) => {
-      router.push(`/results/${data.assessment_id}`);
-    }
-  });
+  const createAssessmentMutation = useCreateAssessment();
 
   const stepFields: FieldPath<OnboardingValues>[][] = [
     ["age", "education"],
@@ -168,6 +171,25 @@ export default function OnboardingPage(): JSX.Element {
 
   const retreatStep = (): void => {
     setStep((current) => Math.max(current - 1, 0));
+  };
+
+  const submit = (values: OnboardingValues): void => {
+    createAssessmentMutation.mutate(
+      {
+        programId: values.programId,
+        profileJson: toProfileJson(values)
+      },
+      {
+        onSuccess: (data) => {
+          router.push(`/results/${data.assessment_id}`);
+        },
+        onError: (error) => {
+          if (isUpgradeRequiredError(error)) {
+            setShowUpgradeModal(true);
+          }
+        }
+      }
+    );
   };
 
   return (
@@ -190,10 +212,7 @@ export default function OnboardingPage(): JSX.Element {
 
           {programsQuery.isLoading ? (
             <div className="mt-8">
-              <PageState
-                title="Carregando programas"
-                description="Buscando programas ativos para seu calculo de score."
-              />
+              <CardSkeleton />
             </div>
           ) : null}
 
@@ -218,7 +237,7 @@ export default function OnboardingPage(): JSX.Element {
           ) : null}
 
           {programsQuery.data && programsQuery.data.length > 0 ? (
-            <form className="mt-8 space-y-5" onSubmit={handleSubmit((value) => createAssessmentMutation.mutate(value))}>
+            <form className="mt-8 space-y-5" onSubmit={handleSubmit(submit)}>
               {step === 0 ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   <Input
@@ -301,9 +320,27 @@ export default function OnboardingPage(): JSX.Element {
               ) : null}
 
               {createAssessmentMutation.isError ? (
-                <p className="text-sm text-danger">
-                  {getApiErrorMessage(createAssessmentMutation.error)}
-                </p>
+                <div className="space-y-2 rounded-xl border border-danger/30 bg-danger/5 p-3">
+                  <p className="text-sm text-danger">{getApiErrorMessage(createAssessmentMutation.error)}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => submit(getValues())}
+                    >
+                      Tentar novamente
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowUpgradeModal(true)}
+                    >
+                      Fazer upgrade
+                    </Button>
+                  </div>
+                </div>
               ) : null}
 
               <div className="flex flex-wrap gap-3">
@@ -326,6 +363,15 @@ export default function OnboardingPage(): JSX.Element {
             </form>
           ) : null}
         </Card>
+
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          onUpgrade={() => {
+            setShowUpgradeModal(false);
+            router.push("/pricing");
+          }}
+        />
       </PrivateShell>
     </AuthGuard>
   );

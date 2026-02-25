@@ -3,7 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
 from sqlalchemy import select
@@ -15,6 +15,7 @@ from apps.accounts.models import User
 
 password_hasher = PasswordHash.recommended()
 bearer_scheme = HTTPBearer(auto_error=False)
+internal_token_header = APIKeyHeader(name="x-internal-token", auto_error=False)
 settings = get_settings()
 
 
@@ -88,3 +89,16 @@ async def get_current_user(
     if user is None:
         raise TokenError("User not found")
     return user
+
+
+def require_internal_token(token: str | None = Depends(internal_token_header)) -> None:
+    if not settings.ingestion_internal_token:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Internal ingestion token is not configured",
+        )
+    if token != settings.ingestion_internal_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid internal token",
+        )

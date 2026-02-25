@@ -35,3 +35,15 @@ Frontend local: `http://localhost:3000`
 - `/roadmaps/[roadmapId]`
 - `/dashboard`
 - `/settings/subscription`
+
+## Hooks de dominio
+
+- `useAssessment`
+- `useRoadmap`
+- `useSubscription`
+
+## Testes
+
+```bash
+npm run test
+```

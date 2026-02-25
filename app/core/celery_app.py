@@ -13,6 +13,7 @@ celery_app = Celery(
         "apps.common.tasks",
         "apps.assessments.tasks",
         "apps.roadmaps.tasks",
+        "apps.ingestion.tasks",
     ],
 )
 
@@ -28,10 +29,12 @@ celery_app.conf.update(
         Queue("default"),
         Queue("score_queue"),
         Queue("roadmap_queue"),
+        Queue("ingestion_queue"),
     ),
     task_routes={
         "apps.assessments.tasks.process_assessment_task": {"queue": "score_queue"},
         "apps.roadmaps.tasks.generate_roadmap_task": {"queue": "roadmap_queue"},
+        "apps.ingestion.tasks.ingest_source_task": {"queue": "ingestion_queue"},
     },
     task_queue_max_priority=10,
     broker_transport_options={
@@ -41,6 +44,10 @@ celery_app.conf.update(
         "heartbeat-every-minute": {
             "task": "apps.common.tasks.heartbeat",
             "schedule": 60.0,
+        },
+        "dispatch-ingestion-every-6-hours": {
+            "task": "apps.ingestion.tasks.dispatch_scheduled_ingestion",
+            "schedule": 21600.0,
         }
     },
 )

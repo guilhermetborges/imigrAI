@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
+from app.core.rate_limit import rate_limit
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -19,9 +21,18 @@ from apps.accounts.schemas import (
 from apps.accounts.services import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+settings = get_settings()
+auth_rate_limiter = rate_limit(
+    scope="auth",
+    limit=settings.auth_rate_limit_requests,
+    window_seconds=settings.auth_rate_limit_window_seconds,
+    identity="user_or_ip",
+)
 
 
-@router.post("/register", response_model=TokenPairResponse)
+@router.post(
+    "/register", response_model=TokenPairResponse, dependencies=[Depends(auth_rate_limiter)]
+)
 async def register(
     payload: RegisterRequest,
     db: AsyncSession = Depends(get_db),
@@ -31,14 +42,16 @@ async def register(
     return TokenPairResponse(**tokens)
 
 
-@router.post("/login", response_model=TokenPairResponse)
+@router.post("/login", response_model=TokenPairResponse, dependencies=[Depends(auth_rate_limiter)])
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> TokenPairResponse:
     service = AuthService(db)
     tokens = await service.login(email=payload.email, password=payload.password)
     return TokenPairResponse(**tokens)
 
 
-@router.post("/refresh", response_model=TokenPairResponse)
+@router.post(
+    "/refresh", response_model=TokenPairResponse, dependencies=[Depends(auth_rate_limiter)]
+)
 async def refresh(payload: RefreshRequest) -> TokenPairResponse:
     token_payload = decode_token(payload.refresh_token, expected_type="refresh")
     subject = token_payload["sub"]

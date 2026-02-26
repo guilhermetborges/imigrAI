@@ -61,10 +61,12 @@ alembic upgrade head
 
 ## Seed de Regras MVP
 
-Fixtures iniciais para 3 paises (`CA`, `AU`, `PT`):
+Fixtures de exemplo para score em 6 paises (`CA`, `AU`, `PT`, `US`, `GB`, `DE`):
 
 ```bash
 python scripts/seed_mvp_rules.py
+# opcional: subset de paises
+python scripts/seed_mvp_rules.py --countries US PT DE
 ```
 
 ## Ingestao automatizada (Bronze/Silver/Gold)
@@ -103,4 +105,28 @@ ruff check .
 black --check .
 pytest
 pre-commit install
+```
+
+## CI/CD MVP
+
+- CI versionado em `.github/workflows/ci.yml`:
+  - lint + format check
+  - testes backend (unit, integracao Postgres, contrato OpenAPI, Celery tasks)
+  - testes frontend (unit + e2e)
+  - build de imagens Docker (backend + frontend)
+- CD versionado em `.github/workflows/cd.yml`:
+  - staging automatico na `main`
+  - producao manual com aprovacao via GitHub Environment
+  - migracao Alembic segura antes do deploy
+  - seed inicial e smoke tests pos-deploy
+
+Scripts de operacao:
+
+```bash
+python scripts/run_migrations_safe.py --database-url "$DATABASE_URL" --alembic-database-url "$ALEMBIC_DATABASE_URL"
+python -m app.cli seed-mvp
+python -m app.cli check-mvp-seed
+# legado/compatibilidade:
+python scripts/seed_initial_data.py
+python scripts/smoke_test.py --base-url "http://localhost:8000" --run-auth-flow
 ```

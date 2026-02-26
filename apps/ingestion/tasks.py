@@ -5,6 +5,9 @@ from uuid import UUID
 
 from app.core.celery_app import celery_app
 from app.core.config import get_settings
+from app.core.log_context import log_context
+from app.core.metrics import update_service_heartbeat
+from app.core.retry import is_definitive_error, is_transient_error
 from app.db import AsyncSessionLocal
 from apps.ingestion.models import IngestionRunItemStatus, IngestionRunTrigger
 from apps.ingestion.repositories import IngestionRepository
@@ -27,61 +30,78 @@ def ingest_source_task(
     run_item_id: str,
     trace_id: str | None = None,
 ) -> dict:
-    started = time.perf_counter()
-    run_uuid = UUID(run_id)
-    run_item_uuid = UUID(run_item_id)
+    with log_context(trace_id=trace_id):
+        started = time.perf_counter()
+        run_uuid = UUID(run_id)
+        run_item_uuid = UUID(run_item_id)
 
-    try:
-        status = asyncio.run(
-            _process_run_item(
-                run_id=run_uuid,
-                run_item_id=run_item_uuid,
-                attempt_number=int(self.request.retries) + 1,
-                trace_id=trace_id,
+        try:
+            status = asyncio.run(
+                _process_run_item(
+                    run_id=run_uuid,
+                    run_item_id=run_item_uuid,
+                    attempt_number=int(self.request.retries) + 1,
+                    trace_id=trace_id,
+                )
             )
-        )
-        asyncio.run(_finalize_run(run_uuid))
-        duration_ms = int((time.perf_counter() - started) * 1000)
-        logger.info(
-            "ingestion_item_completed",
-            extra={
-                "run_id": run_id,
-                "run_item_id": run_item_id,
-                "status": status.value,
-                "trace_id": trace_id,
-                "duration_ms": duration_ms,
-            },
-        )
-        return {"status": status.value, "run_id": run_id, "run_item_id": run_item_id}
-    except Exception as exc:
-        retries = int(self.request.retries)
-        max_retries = int(self.max_retries or 0)
-        if retries >= max_retries:
             asyncio.run(_finalize_run(run_uuid))
-            logger.error(
-                "ingestion_item_dead_letter",
+            duration_ms = int((time.perf_counter() - started) * 1000)
+            logger.info(
+                "ingestion_item_completed",
+                extra={
+                    "run_id": run_id,
+                    "run_item_id": run_item_id,
+                    "status": status.value,
+                    "trace_id": trace_id,
+                    "duration_ms": duration_ms,
+                },
+            )
+            return {"status": status.value, "run_id": run_id, "run_item_id": run_item_id}
+        except Exception as exc:
+            retries = int(self.request.retries)
+            max_retries = int(self.max_retries or 0)
+            definitive = is_definitive_error(exc)
+            transient = is_transient_error(exc)
+            dead_letter = definitive or (not transient) or retries >= max_retries
+            if dead_letter:
+                asyncio.run(_finalize_run(run_uuid))
+                logger.error(
+                    "ingestion_item_dead_letter",
+                    extra={
+                        "run_id": run_id,
+                        "run_item_id": run_item_id,
+                        "trace_id": trace_id,
+                        "retry_policy": (
+                            "definitive" if definitive or (not transient) else "max_retries"
+                        ),
+                        "error": str(exc),
+                    },
+                )
+                _emit_dead_letter(
+                    source="ingestion_item",
+                    payload={
+                        "run_id": run_id,
+                        "run_item_id": run_item_id,
+                        "trace_id": trace_id,
+                        "error": str(exc),
+                    },
+                )
+                raise
+
+            countdown = max(1, settings.ingestion_retry_backoff_base_seconds * (2**retries))
+            logger.warning(
+                "ingestion_item_retry",
                 extra={
                     "run_id": run_id,
                     "run_item_id": run_item_id,
                     "trace_id": trace_id,
+                    "retries": retries,
+                    "next_retry_in_seconds": countdown,
+                    "retry_policy": "transient",
                     "error": str(exc),
                 },
             )
-            raise
-
-        countdown = max(1, settings.ingestion_retry_backoff_base_seconds * (2**retries))
-        logger.warning(
-            "ingestion_item_retry",
-            extra={
-                "run_id": run_id,
-                "run_item_id": run_item_id,
-                "trace_id": trace_id,
-                "retries": retries,
-                "next_retry_in_seconds": countdown,
-                "error": str(exc),
-            },
-        )
-        raise self.retry(exc=exc, countdown=countdown) from exc
+            raise self.retry(exc=exc, countdown=countdown) from exc
 
 
 @celery_app.task(
@@ -113,6 +133,7 @@ def dispatch_country_ingestion_task(
 
 @celery_app.task(name="apps.ingestion.tasks.dispatch_scheduled_ingestion")
 def dispatch_scheduled_ingestion() -> dict:
+    update_service_heartbeat("beat", time.time())
     try:
         run_id, item_ids = asyncio.run(
             _create_run(
@@ -184,3 +205,18 @@ async def _finalize_run(run_id: UUID) -> None:
     async with AsyncSessionLocal() as db:
         service = IngestionPipelineService(db)
         await service.finalize_run(run_id)
+
+
+def _emit_dead_letter(*, source: str, payload: dict) -> None:
+    from apps.common.tasks import dead_letter_event
+
+    try:
+        dead_letter_event.apply_async(
+            kwargs={"source": source, "payload": payload},
+            queue="dead_letter_queue",
+        )
+    except Exception as exc:
+        logger.warning(
+            "dead_letter_emit_failed",
+            extra={"source": source, "error": str(exc)},
+        )

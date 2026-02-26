@@ -98,11 +98,18 @@ class AssessmentsService:
             job_id=job.id,
         )
 
-    async def get_assessment_status(self, assessment_id: UUID) -> AssessmentStatusRead:
+    async def get_assessment_status(
+        self, *, assessment_id: UUID, user_id: UUID
+    ) -> AssessmentStatusRead:
         assessment = await self.repo.get_assessment_status(assessment_id)
         if assessment is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
+            )
+        if assessment.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Assessment not found",
             )
 
         job = await self.jobs_repo.get_latest_job_for_assessment(assessment.id)
@@ -137,9 +144,19 @@ class AssessmentsService:
             )
             raise
 
-    async def get_assessment_breakdown(self, assessment_id: UUID) -> AssessmentBreakdownRead:
+    async def get_assessment_breakdown(
+        self,
+        *,
+        assessment_id: UUID,
+        user_id: UUID,
+    ) -> AssessmentBreakdownRead:
         assessment = await self.repo.get_assessment(assessment_id)
         if assessment is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Assessment not found",
+            )
+        if assessment.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Assessment not found",

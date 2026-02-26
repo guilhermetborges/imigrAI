@@ -2,14 +2,15 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.log_context import bind_log_context
 from app.db import get_db
 from apps.accounts.models import User
 
@@ -73,6 +74,7 @@ def decode_token(token: str, expected_type: str) -> dict[str, Any]:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
@@ -88,7 +90,59 @@ async def get_current_user(
 
     if user is None:
         raise TokenError("User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
+
+    bind_log_context(
+        trace_id=getattr(request.state, "trace_id", None),
+        user_id=str(user.id),
+    )
+    await apply_rls_context(db, user)
     return user
+
+
+async def get_optional_current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    if credentials is None:
+        return None
+    try:
+        payload = decode_token(credentials.credentials, expected_type="access")
+    except TokenError:
+        return None
+
+    query = select(User).where(User.id == UUID(payload["sub"]))
+    result = await db.execute(query)
+    user = result.scalar_one_or_none()
+    if user is None:
+        return None
+
+    bind_log_context(
+        trace_id=getattr(request.state, "trace_id", None),
+        user_id=str(user.id),
+    )
+    await apply_rls_context(db, user)
+    return user
+
+
+async def apply_rls_context(db: AsyncSession, user: User) -> None:
+    try:
+        await db.execute(
+            text(
+                "SELECT "
+                "set_config('app.current_user_id', :user_id, true), "
+                "set_config('app.current_user_role', :user_role, true)"
+            ),
+            {
+                "user_id": str(user.id),
+                "user_role": str(getattr(user, "role", "member")),
+            },
+        )
+    except Exception:
+        # SQLite de testes e alguns ambientes locais nao suportam set_config.
+        return
 
 
 def require_internal_token(token: str | None = Depends(internal_token_header)) -> None:

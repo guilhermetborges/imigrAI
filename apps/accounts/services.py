@@ -1,18 +1,21 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.security import (
     create_access_token,
     create_refresh_token,
     get_password_hash,
     verify_password,
 )
+from apps.accounts.models import UserRole
 from apps.accounts.repositories import UserRepository
 
 
 class AuthService:
     def __init__(self, db: AsyncSession) -> None:
         self.repo = UserRepository(db)
+        self.settings = get_settings()
 
     async def register(self, email: str, password: str):
         existing = await self.repo.get_by_email(email)
@@ -22,7 +25,16 @@ class AuthService:
                 detail="Email already registered",
             )
 
-        user = await self.repo.create(email=email, password_hash=get_password_hash(password))
+        role = (
+            UserRole.admin
+            if email.lower() in {item.lower() for item in self.settings.admin_emails}
+            else UserRole.member
+        )
+        user = await self.repo.create(
+            email=email,
+            password_hash=get_password_hash(password),
+            role=role,
+        )
         tokens = self._issue_tokens(str(user.id))
         return user, tokens
 

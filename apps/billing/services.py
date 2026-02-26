@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.metrics import increment_free_to_pro_conversion
 from apps.accounts.models import User
 from apps.billing.models import (
     BillingEventStatus,
@@ -312,6 +313,9 @@ class BillingService:
             provider=BillingProvider.stripe,
             provider_subscription_id=provider_subscription_id,
         )
+        should_count_conversion = plan.code == self.settings.pro_plan_code and (
+            existing is None or existing.plan_id != plan.id
+        )
         if existing is not None:
             user_id = existing.user_id
         else:
@@ -346,6 +350,8 @@ class BillingService:
             cancel_at_period_end=cancel_at_period_end,
             canceled_at=canceled_at,
         )
+        if should_count_conversion:
+            increment_free_to_pro_conversion()
 
         if status_value in {
             SubscriptionStatus.active,

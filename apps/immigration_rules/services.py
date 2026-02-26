@@ -50,6 +50,9 @@ class ImmigrationRulesService:
             {
                 "code": payload.code.upper(),
                 "name": payload.name,
+                "priority_rank": payload.priority_rank,
+                "diaspora_population_estimate": payload.diaspora_population_estimate,
+                "prioritization_source_url": payload.prioritization_source_url,
             }
         )
         await self._commit_and_refresh(country)

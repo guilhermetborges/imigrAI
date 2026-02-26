@@ -12,7 +12,7 @@ from apps.assessments.engine import (
 MVP_RULE_FIXTURES = {
     "CA": {
         "country": {"code": "CA", "name": "Canada"},
-        "program": {"code": "express_entry", "name": "Express Entry"},
+        "program": {"code": "CA_IRCC_IMMIGRATION", "name": "IRCC Immigration Programs"},
         "program_version": {
             "id": "9a6cff22-dd5a-4f60-bfbb-54b4a8dc0ea1",
             "version": "2026.01",
@@ -400,7 +400,7 @@ MVP_RULE_FIXTURES = {
     },
     "PT": {
         "country": {"code": "PT", "name": "Portugal"},
-        "program": {"code": "d7", "name": "Visto D7"},
+        "program": {"code": "PT_AIMA_VISAS", "name": "AIMA Residence and Visa Rules"},
         "program_version": {
             "id": "54b82206-3858-4125-8ce3-6c440e6dddc8",
             "version": "2026.01",
@@ -483,6 +483,224 @@ MVP_RULE_FIXTURES = {
                         "is_blocking": False,
                         "explanation_message": "Historico profissional informado",
                         "outcome_code": "PROFILE_COMPLETENESS",
+                    }
+                ],
+            },
+        ],
+    },
+    "US": {
+        "country": {"code": "US", "name": "Estados Unidos"},
+        "program": {"code": "US_GENERAL_IMMIGRATION", "name": "USCIS Immigration Pathways"},
+        "program_version": {
+            "id": "b2e31b89-6d98-492f-a40d-0d0cd86b0869",
+            "version": "2026.01",
+            "effective_from": "2026-01-01T00:00:00+00:00",
+            "effective_to": None,
+        },
+        "rule_groups": [
+            {
+                "id": "f5f29bce-d00d-4ed3-b425-09d6e6bf8cb4",
+                "code": "professional_experience",
+                "name": "Experiencia profissional",
+                "priority": 10,
+                "match_operator": "all",
+                "conditions": [
+                    {
+                        "id": "2f1ef2db-0f77-4fb8-847a-9e3d0db43f5f",
+                        "field_key": "anos_experiencia",
+                        "operator": "gte",
+                        "value_json": 3,
+                        "condition_order": 1,
+                        "is_required": True,
+                    }
+                ],
+                "outcomes": [
+                    {
+                        "id": "fafe8330-ddde-4f27-a025-c4e8fff53443",
+                        "score_delta": "20",
+                        "is_blocking": False,
+                        "explanation_message": "Experiencia profissional competitiva",
+                        "outcome_code": "EXPERIENCE_BONUS",
+                    }
+                ],
+            },
+            {
+                "id": "bf44caaf-c7af-45d5-8183-2f5d6ca9b9af",
+                "code": "english_requirement",
+                "name": "Ingles minimo",
+                "priority": 20,
+                "match_operator": "all",
+                "conditions": [
+                    {
+                        "id": "7df77ffe-2f49-42ec-b68f-28af93b26e20",
+                        "field_key": "idiomas_nivel.en",
+                        "operator": "gte",
+                        "value_json": 4,
+                        "condition_order": 1,
+                        "is_required": True,
+                    }
+                ],
+                "outcomes": [
+                    {
+                        "id": "58d16465-8572-4ecb-abc3-f810464d4f52",
+                        "score_delta": "15",
+                        "is_blocking": False,
+                        "explanation_message": "Nivel de ingles adequado para aplicacao",
+                        "outcome_code": "LANGUAGE_BONUS",
+                    }
+                ],
+            },
+            {
+                "id": "a0f0f1aa-cf66-4df4-88db-96abf9d2ca39",
+                "code": "inadmissibility_block",
+                "name": "Bloqueio por inadmissibilidade",
+                "priority": 30,
+                "match_operator": "all",
+                "conditions": [
+                    {
+                        "id": "b97d59f6-83b5-4269-bbce-0e0f1be9d40e",
+                        "field_key": "possui_inadmissibilidade",
+                        "operator": "eq",
+                        "value_json": True,
+                        "condition_order": 1,
+                        "is_required": True,
+                    }
+                ],
+                "outcomes": [
+                    {
+                        "id": "7048a266-eb8c-4f15-8bca-26df5e77ac48",
+                        "score_delta": "-100",
+                        "is_blocking": True,
+                        "explanation_message": "Existem criterios impeditivos de admissibilidade",
+                        "outcome_code": "INADMISSIBILITY_BLOCK",
+                    }
+                ],
+            },
+        ],
+    },
+    "GB": {
+        "country": {"code": "GB", "name": "Reino Unido"},
+        "program": {"code": "UK_VISAS_IMMIGRATION", "name": "UK Visas and Immigration"},
+        "program_version": {
+            "id": "1c7f52bc-6fd4-4cc6-825e-7bca0f974ebf",
+            "version": "2026.01",
+            "effective_from": "2026-01-01T00:00:00+00:00",
+            "effective_to": None,
+        },
+        "rule_groups": [
+            {
+                "id": "3c8c8ef1-4f16-440a-a923-3f4d5575d58e",
+                "code": "salary_threshold",
+                "name": "Faixa salarial",
+                "priority": 10,
+                "match_operator": "all",
+                "conditions": [
+                    {
+                        "id": "55a660d2-22a3-4ea2-a216-30235e2d95d4",
+                        "field_key": "salario_anual",
+                        "operator": "gte",
+                        "value_json": 38700,
+                        "condition_order": 1,
+                        "is_required": True,
+                    }
+                ],
+                "outcomes": [
+                    {
+                        "id": "f5c4735b-84e7-44a8-975c-4d0d7de6f8f9",
+                        "score_delta": "25",
+                        "is_blocking": False,
+                        "explanation_message": "Faixa salarial alinhada ao programa",
+                        "outcome_code": "SALARY_BONUS",
+                    }
+                ],
+            },
+            {
+                "id": "f72411f9-a052-40ca-89d5-49f26895a8e4",
+                "code": "english_b1",
+                "name": "Ingles nivel B1",
+                "priority": 20,
+                "match_operator": "all",
+                "conditions": [
+                    {
+                        "id": "3c7ce8f7-c7de-485b-b6c0-a4213f4f0e72",
+                        "field_key": "idiomas_nivel.en",
+                        "operator": "gte",
+                        "value_json": 3,
+                        "condition_order": 1,
+                        "is_required": True,
+                    }
+                ],
+                "outcomes": [
+                    {
+                        "id": "2044f54b-f9a0-4745-8895-e40f6a43dcfd",
+                        "score_delta": "15",
+                        "is_blocking": False,
+                        "explanation_message": "Comprovacao de ingles em nivel minimo",
+                        "outcome_code": "ENGLISH_OK",
+                    }
+                ],
+            },
+        ],
+    },
+    "DE": {
+        "country": {"code": "DE", "name": "Alemanha"},
+        "program": {"code": "DE_WORK_IMMIGRATION", "name": "Make it in Germany"},
+        "program_version": {
+            "id": "8cadfce6-57fd-4975-9530-9012cccd5be6",
+            "version": "2026.01",
+            "effective_from": "2026-01-01T00:00:00+00:00",
+            "effective_to": None,
+        },
+        "rule_groups": [
+            {
+                "id": "994238af-e40f-4f75-80f3-cd8d24b6b8d3",
+                "code": "qualification_recognized",
+                "name": "Qualificacao reconhecida",
+                "priority": 10,
+                "match_operator": "all",
+                "conditions": [
+                    {
+                        "id": "6d61da55-98db-4a1b-a05c-7afc02bdc3ff",
+                        "field_key": "qualificacao_reconhecida",
+                        "operator": "eq",
+                        "value_json": True,
+                        "condition_order": 1,
+                        "is_required": True,
+                    }
+                ],
+                "outcomes": [
+                    {
+                        "id": "ac53c10b-1be5-4a9b-afd5-f97d91d9fa4f",
+                        "score_delta": "25",
+                        "is_blocking": False,
+                        "explanation_message": "Qualificacao reconhecida para trabalho qualificado",
+                        "outcome_code": "RECOGNITION_BONUS",
+                    }
+                ],
+            },
+            {
+                "id": "cd1325bd-b222-4288-9e3f-b3f8647d5cd7",
+                "code": "german_language",
+                "name": "Idioma alemao",
+                "priority": 20,
+                "match_operator": "all",
+                "conditions": [
+                    {
+                        "id": "634e10dd-94af-4203-bd58-9788182276bc",
+                        "field_key": "idiomas_nivel.de",
+                        "operator": "gte",
+                        "value_json": 3,
+                        "condition_order": 1,
+                        "is_required": True,
+                    }
+                ],
+                "outcomes": [
+                    {
+                        "id": "41135f62-64d2-42e6-bec1-9f977936f5f4",
+                        "score_delta": "15",
+                        "is_blocking": False,
+                        "explanation_message": "Nivel de alemao ajuda na elegibilidade",
+                        "outcome_code": "GERMAN_BONUS",
                     }
                 ],
             },

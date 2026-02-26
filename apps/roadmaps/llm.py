@@ -1,10 +1,13 @@
 import json
 from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 from pydantic import ValidationError
 
 from app.core.config import BaseConfig
+from app.core.metrics import increment_llm_provider
 from apps.roadmaps.schemas import RoadmapContract, RoadmapStepContract
 
 
@@ -26,6 +29,24 @@ class LLMProvider(Protocol):
 
     def generate_roadmap(self, input_payload: dict) -> RoadmapContract:
         raise NotImplementedError
+
+
+@dataclass
+class CircuitBreakerState:
+    consecutive_failures: int = 0
+    opened_until: datetime | None = None
+
+    def is_open(self, now: datetime) -> bool:
+        return self.opened_until is not None and now < self.opened_until
+
+    def record_failure(self, *, threshold: int, recovery_seconds: int, now: datetime) -> None:
+        self.consecutive_failures += 1
+        if self.consecutive_failures >= threshold:
+            self.opened_until = now + timedelta(seconds=recovery_seconds)
+
+    def record_success(self) -> None:
+        self.consecutive_failures = 0
+        self.opened_until = None
 
 
 class OpenAILLMProvider:
@@ -134,12 +155,66 @@ class ClaudeLLMProviderStub:
         )
 
 
+class ResilientLLMProvider:
+    provider_name = "resilient"
+
+    def __init__(
+        self,
+        *,
+        primary: LLMProvider,
+        fallback: LLMProvider,
+        failure_threshold: int,
+        recovery_seconds: int,
+    ) -> None:
+        self.primary = primary
+        self.fallback = fallback
+        self.model_name = primary.model_name
+        self.failure_threshold = max(1, failure_threshold)
+        self.recovery_seconds = max(1, recovery_seconds)
+        self._state = CircuitBreakerState()
+
+    def generate_roadmap(self, input_payload: dict) -> RoadmapContract:
+        now = datetime.now(UTC)
+        if self._state.is_open(now):
+            return self._generate_with_fallback(input_payload, result="circuit_open")
+
+        try:
+            contract = self.primary.generate_roadmap(input_payload)
+            self._state.record_success()
+            self.provider_name = self.primary.provider_name
+            self.model_name = self.primary.model_name
+            increment_llm_provider(self.provider_name, "success")
+            return contract
+        except LLMProviderError:
+            self._state.record_failure(
+                threshold=self.failure_threshold,
+                recovery_seconds=self.recovery_seconds,
+                now=now,
+            )
+            increment_llm_provider(self.primary.provider_name, "error")
+            return self._generate_with_fallback(input_payload, result="fallback")
+
+    def _generate_with_fallback(self, input_payload: dict, *, result: str) -> RoadmapContract:
+        contract = self.fallback.generate_roadmap(input_payload)
+        self.provider_name = self.fallback.provider_name
+        self.model_name = self.fallback.model_name
+        increment_llm_provider(self.fallback.provider_name, result)
+        return contract
+
+
 def build_llm_provider(settings: BaseConfig) -> LLMProvider:
+    fallback = ClaudeLLMProviderStub(model_name=settings.anthropic_model)
     if settings.llm_provider == "claude":
-        return ClaudeLLMProviderStub(model_name=settings.anthropic_model)
-    return OpenAILLMProvider(
+        return fallback
+    primary = OpenAILLMProvider(
         api_key=settings.openai_api_key,
         model_name=settings.openai_model,
         timeout_seconds=settings.llm_timeout_seconds,
         temperature=settings.llm_temperature,
+    )
+    return ResilientLLMProvider(
+        primary=primary,
+        fallback=fallback,
+        failure_threshold=settings.llm_circuit_breaker_failure_threshold,
+        recovery_seconds=settings.llm_circuit_breaker_recovery_seconds,
     )

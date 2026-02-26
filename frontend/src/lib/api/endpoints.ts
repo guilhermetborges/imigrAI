@@ -6,6 +6,13 @@ import {
   normalizeAssessmentStatusRead,
   normalizeRoadmapStatusRead
 } from "@/lib/api/normalizers";
+import {
+  assessmentCreateSchema,
+  checkoutSessionCreateSchema,
+  loginRequestSchema,
+  registerRequestSchema,
+  roadmapCreateSchema
+} from "@/lib/validation/api";
 import type {
   AssessmentBreakdownRead,
   AssessmentCreate,
@@ -86,12 +93,14 @@ function readPlansPayload(payload: unknown): PlanRead[] {
 
 export const authApi = {
   async register(payload: RegisterRequest): Promise<TokenPairResponse> {
-    const { data } = await apiClient.post<TokenPairResponse>("/auth/register", payload);
+    const safePayload = registerRequestSchema.parse(payload);
+    const { data } = await apiClient.post<TokenPairResponse>("/auth/register", safePayload);
     return data;
   },
 
   async login(payload: LoginRequest): Promise<TokenPairResponse> {
-    const { data } = await apiClient.post<TokenPairResponse>("/auth/login", payload);
+    const safePayload = loginRequestSchema.parse(payload);
+    const { data } = await apiClient.post<TokenPairResponse>("/auth/login", safePayload);
     return data;
   },
 
@@ -124,7 +133,8 @@ export const immigrationApi = {
 
 export const assessmentsApi = {
   async create(payload: AssessmentCreate): Promise<AssessmentQueuedRead> {
-    const { data } = await apiClient.post<AssessmentQueuedRead>("/assessments", payload);
+    const safePayload = assessmentCreateSchema.parse(payload);
+    const { data } = await apiClient.post<AssessmentQueuedRead>("/assessments", safePayload);
     return data;
   },
 
@@ -176,7 +186,8 @@ export const assessmentsApi = {
 
 export const roadmapsApi = {
   async create(payload: RoadmapCreate): Promise<RoadmapQueuedRead> {
-    const { data } = await apiClient.post<RoadmapQueuedRead>("/roadmaps", payload);
+    const safePayload = roadmapCreateSchema.parse(payload);
+    const { data } = await apiClient.post<RoadmapQueuedRead>("/roadmaps", safePayload);
     return data;
   },
 
@@ -260,9 +271,10 @@ export const billingApi = {
   },
 
   async createCheckoutSession(payload: CheckoutSessionCreate): Promise<CheckoutSessionRead> {
+    const safePayload = checkoutSessionCreateSchema.parse(payload);
     const { data } = await apiClient.post<CheckoutSessionRead>(
       "/billing/checkout-session",
-      payload
+      safePayload
     );
     return data;
   }

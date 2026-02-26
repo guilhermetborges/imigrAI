@@ -7,6 +7,9 @@ from billiard.exceptions import SoftTimeLimitExceeded
 
 from app.core.celery_app import celery_app
 from app.core.config import get_settings
+from app.core.log_context import log_context
+from app.core.metrics import observe_score_duration
+from app.core.retry import is_definitive_error, is_transient_error
 from app.db import AsyncSessionLocal
 from apps.assessments.services import AssessmentsService
 from apps.common.repositories import JobsRepository
@@ -28,50 +31,52 @@ def process_assessment_task(
     job_id: str,
     trace_id: str | None = None,
 ) -> dict:
-    started = time.perf_counter()
-    assessment_uuid = UUID(assessment_id)
-    job_uuid = UUID(job_id)
+    with log_context(trace_id=trace_id, assessment_id=assessment_id):
+        started = time.perf_counter()
+        assessment_uuid = UUID(assessment_id)
+        job_uuid = UUID(job_id)
 
-    try:
-        asyncio.run(
-            _run_assessment_job(
-                assessment_id=assessment_uuid,
+        try:
+            asyncio.run(
+                _run_assessment_job(
+                    assessment_id=assessment_uuid,
+                    job_id=job_uuid,
+                    trace_id=trace_id,
+                )
+            )
+            duration_ms = int((time.perf_counter() - started) * 1000)
+            observe_score_duration(duration_ms / 1000)
+            asyncio.run(_mark_job_completed(job_uuid, duration_ms=duration_ms))
+            logger.info(
+                "score_job_completed",
+                extra={
+                    "assessment_id": assessment_id,
+                    "job_id": job_id,
+                    "trace_id": trace_id,
+                    "duration_ms": duration_ms,
+                },
+            )
+            return {"status": "completed", "assessment_id": assessment_id, "job_id": job_id}
+        except SoftTimeLimitExceeded as exc:
+            _handle_failure(
+                task=self,
+                exc=exc,
                 job_id=job_uuid,
                 trace_id=trace_id,
+                started=started,
+                event="score_job_timeout",
             )
-        )
-        duration_ms = int((time.perf_counter() - started) * 1000)
-        asyncio.run(_mark_job_completed(job_uuid, duration_ms=duration_ms))
-        logger.info(
-            "score_job_completed",
-            extra={
-                "assessment_id": assessment_id,
-                "job_id": job_id,
-                "trace_id": trace_id,
-                "duration_ms": duration_ms,
-            },
-        )
-        return {"status": "completed", "assessment_id": assessment_id, "job_id": job_id}
-    except SoftTimeLimitExceeded as exc:
-        _handle_failure(
-            task=self,
-            exc=exc,
-            job_id=job_uuid,
-            trace_id=trace_id,
-            started=started,
-            event="score_job_timeout",
-        )
-        raise
-    except Exception as exc:
-        _handle_failure(
-            task=self,
-            exc=exc,
-            job_id=job_uuid,
-            trace_id=trace_id,
-            started=started,
-            event="score_job_failed",
-        )
-        raise
+            raise
+        except Exception as exc:
+            _handle_failure(
+                task=self,
+                exc=exc,
+                job_id=job_uuid,
+                trace_id=trace_id,
+                started=started,
+                event="score_job_failed",
+            )
+            raise
 
 
 async def _run_assessment_job(*, assessment_id: UUID, job_id: UUID, trace_id: str | None) -> None:
@@ -101,6 +106,40 @@ def _handle_failure(
     max_retries = int(task.max_retries or 0)
     duration_ms = int((time.perf_counter() - started) * 1000)
     error_message = str(exc)
+    definitive = is_definitive_error(exc)
+    transient = is_transient_error(exc) or isinstance(exc, SoftTimeLimitExceeded)
+
+    if definitive or (not transient):
+        asyncio.run(
+            _mark_job_failed(
+                job_id=job_id,
+                error_message=error_message,
+                duration_ms=duration_ms,
+                dead_letter=True,
+            )
+        )
+        logger.error(
+            event,
+            extra={
+                "job_id": str(job_id),
+                "trace_id": trace_id,
+                "retries": retries,
+                "duration_ms": duration_ms,
+                "dead_letter": True,
+                "retry_policy": "definitive",
+                "error": error_message,
+            },
+        )
+        _emit_dead_letter(
+            source="score_job",
+            payload={
+                "job_id": str(job_id),
+                "trace_id": trace_id,
+                "event": event,
+                "error": error_message,
+            },
+        )
+        return
 
     if retries >= max_retries:
         asyncio.run(
@@ -119,6 +158,16 @@ def _handle_failure(
                 "retries": retries,
                 "duration_ms": duration_ms,
                 "dead_letter": True,
+                "retry_policy": "max_retries",
+                "error": error_message,
+            },
+        )
+        _emit_dead_letter(
+            source="score_job",
+            payload={
+                "job_id": str(job_id),
+                "trace_id": trace_id,
+                "event": event,
                 "error": error_message,
             },
         )
@@ -134,6 +183,7 @@ def _handle_failure(
             "retries": retries,
             "next_retry_in_seconds": countdown,
             "duration_ms": duration_ms,
+            "retry_policy": "transient",
             "error": error_message,
         },
     )
@@ -160,4 +210,19 @@ async def _mark_job_failed(
             error_message=error_message,
             duration_ms=duration_ms,
             dead_letter=dead_letter,
+        )
+
+
+def _emit_dead_letter(*, source: str, payload: dict) -> None:
+    from apps.common.tasks import dead_letter_event
+
+    try:
+        dead_letter_event.apply_async(
+            kwargs={"source": source, "payload": payload},
+            queue="dead_letter_queue",
+        )
+    except Exception as exc:
+        logger.warning(
+            "dead_letter_emit_failed",
+            extra={"source": source, "error": str(exc)},
         )

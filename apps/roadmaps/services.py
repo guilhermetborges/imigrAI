@@ -143,9 +143,11 @@ class RoadmapsService:
             return
         await self.repo.mark_failed(roadmap, error_message=error_message)
 
-    async def get_roadmap_status(self, roadmap_id: UUID) -> RoadmapStatusRead:
+    async def get_roadmap_status(self, *, roadmap_id: UUID, user_id: UUID) -> RoadmapStatusRead:
         roadmap = await self.repo.get_roadmap(roadmap_id)
         if roadmap is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Roadmap not found")
+        if roadmap.user_id != user_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Roadmap not found")
 
         job = await self.jobs_repo.get_latest_job_for_roadmap(roadmap_id)
@@ -157,9 +159,11 @@ class RoadmapsService:
             job_id=job.id if job else None,
         )
 
-    async def get_roadmap_detail(self, roadmap_id: UUID) -> RoadmapDetailRead:
+    async def get_roadmap_detail(self, *, roadmap_id: UUID, user_id: UUID) -> RoadmapDetailRead:
         roadmap = await self.repo.get_roadmap_detail(roadmap_id)
         if roadmap is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Roadmap not found")
+        if roadmap.user_id != user_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Roadmap not found")
         return RoadmapDetailRead(
             roadmap=RoadmapRead.model_validate(roadmap),

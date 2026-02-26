@@ -9,13 +9,16 @@ Requires-Dist: asyncpg>=0.29.0
 Requires-Dist: celery[redis]>=5.4.0
 Requires-Dist: email-validator>=2.2.0
 Requires-Dist: fastapi>=0.115.0
+Requires-Dist: openai>=1.51.0
 Requires-Dist: psycopg[binary]>=3.2.1
+Requires-Dist: prometheus-client>=0.21.1
 Requires-Dist: pwdlib[argon2]>=0.3.0
 Requires-Dist: pydantic-settings>=2.4.0
 Requires-Dist: python-json-logger>=2.0.7
 Requires-Dist: python-jose[cryptography]>=3.3.0
 Requires-Dist: redis>=5.0.7
 Requires-Dist: sqlalchemy[asyncio]>=2.0.34
+Requires-Dist: stripe>=11.6.0
 Requires-Dist: uvicorn[standard]>=0.30.6
 Provides-Extra: dev
 Requires-Dist: aiosqlite>=0.20.0; extra == "dev"
@@ -64,6 +67,20 @@ Endpoints:
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/refresh`
 - `GET /api/v1/auth/me`
+- `POST /api/v1/billing/checkout-session`
+- `POST /api/v1/billing/webhook/stripe`
+- `GET /api/v1/entitlements/me`
+- `POST /api/v1/assessments` (async -> `202`)
+- `GET /api/v1/assessments/{assessment_id}/status`
+- `GET /api/v1/assessments/{assessment_id}/breakdown`
+- `POST /api/v1/roadmaps` (Pro entitlement, async -> `202`)
+- `GET /api/v1/roadmaps/{roadmap_id}/status`
+- `GET /api/v1/roadmaps/{roadmap_id}`
+- `GET /api/v1/jobs/{job_id}` (polling)
+- `POST /api/v1/ingestion/source-registry/seed` (interno, protegido por `x-internal-token`)
+- `GET /api/v1/ingestion/source-registry` (interno)
+- `POST /api/v1/ingestion/reprocess-source` (interno, async/sync)
+- `GET /api/v1/ingestion/runs/{run_id}` (interno)
 - `GET /openapi.json`
 - `GET /docs`
 - `GET /redoc`
@@ -73,6 +90,42 @@ Endpoints:
 ```bash
 alembic upgrade head
 ```
+
+## Seed de Regras MVP
+
+Fixtures iniciais para 3 paises (`CA`, `AU`, `PT`):
+
+```bash
+python scripts/seed_mvp_rules.py
+```
+
+## Ingestao automatizada (Bronze/Silver/Gold)
+
+- Seed do `SourceRegistry` com fontes oficiais:
+
+```bash
+python scripts/ingestion_cli.py seed-sources
+```
+
+- Reprocessar fonte especifica:
+
+```bash
+python scripts/ingestion_cli.py reprocess-source --source-key uk_gov_immigration --sync
+```
+
+## Score Formula
+
+- `docs/score/formula-score.md`
+
+## Freemium MVP
+
+- Free: `3 assessments/mes`, sem roadmap IA.
+- Pro: assessments ilimitados, roadmap IA liberado, prioridade de processamento.
+- Stripe webhook suportado:
+  - `checkout.session.completed`
+  - `invoice.paid`
+  - `customer.subscription.updated`
+  - `customer.subscription.deleted`
 
 ## Qualidade
 

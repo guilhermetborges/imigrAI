@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
+from collections.abc import Iterable
 from datetime import UTC, datetime
 
 from sqlalchemy import and_, select
@@ -26,14 +28,16 @@ def _to_datetime(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value).astimezone(UTC)
 
 
-async def seed() -> None:
+async def _seed_fixtures(fixtures: dict[str, dict]) -> None:
     async with AsyncSessionLocal() as db:
-        for fixture in MVP_RULE_FIXTURES.values():
+        for fixture in fixtures.values():
             country_data = fixture["country"]
             country = await db.scalar(select(Country).where(Country.code == country_data["code"]))
             if country is None:
                 country = Country(
-                    code=country_data["code"], name=country_data["name"], is_active=True
+                    code=country_data["code"],
+                    name=country_data["name"],
+                    is_active=True,
                 )
                 db.add(country)
                 await db.flush()
@@ -149,6 +153,35 @@ async def seed() -> None:
         await db.commit()
 
 
+async def seed() -> None:
+    await _seed_fixtures(MVP_RULE_FIXTURES)
+
+
+async def seed_for_countries(country_codes: Iterable[str]) -> None:
+    selected = {code.upper() for code in country_codes}
+    if not selected:
+        return
+
+    filtered = {
+        country_code: fixture
+        for country_code, fixture in MVP_RULE_FIXTURES.items()
+        if country_code.upper() in selected
+    }
+    await _seed_fixtures(filtered)
+
+
 if __name__ == "__main__":
-    asyncio.run(seed())
+    parser = argparse.ArgumentParser(description="Seed MVP score rule fixtures")
+    parser.add_argument(
+        "--countries",
+        nargs="*",
+        default=None,
+        help="Optional list of country codes to seed (example: --countries US PT DE)",
+    )
+    args = parser.parse_args()
+
+    if args.countries:
+        asyncio.run(seed_for_countries(args.countries))
+    else:
+        asyncio.run(seed())
     print("MVP rule fixtures seeded successfully.")

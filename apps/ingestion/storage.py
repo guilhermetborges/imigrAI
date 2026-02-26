@@ -43,9 +43,7 @@ class BronzeStorageClient:
     ) -> StoredObject:
         now = datetime.now(UTC)
         extension = self._guess_extension(content_type)
-        object_path = (
-            f"{now:%Y/%m/%d}/{source_key}/{run_item_id}{extension}"
-        )
+        object_path = f"{now:%Y/%m/%d}/{source_key}/{run_item_id}{extension}"
 
         if self.supabase_url and self.service_role_key:
             try:

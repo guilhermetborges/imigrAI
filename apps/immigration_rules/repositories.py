@@ -13,6 +13,7 @@ from apps.immigration_rules.models import (
     RuleGroup,
     RuleOutcome,
 )
+from apps.ingestion.models import SourceDocument
 
 _END_OF_TIME = datetime.max.replace(tzinfo=UTC)
 
@@ -37,6 +38,14 @@ class ImmigrationRulesRepository:
 
     async def list_countries(self) -> list[Country]:
         result = await self.db.execute(select(Country).order_by(Country.code.asc()))
+        return list(result.scalars().all())
+
+    async def list_countries_for_catalog(self) -> list[Country]:
+        result = await self.db.execute(
+            select(Country).where(Country.is_active.is_(True)).order_by(
+                Country.priority_rank.asc().nulls_last(), Country.code.asc()
+            )
+        )
         return list(result.scalars().all())
 
     async def get_program_by_country_code(
@@ -64,6 +73,16 @@ class ImmigrationRulesRepository:
         if country_id is not None:
             query = query.where(ImmigrationProgram.country_id == country_id)
         query = query.order_by(ImmigrationProgram.code.asc())
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
+    async def list_programs_by_country_code(self, country_code: str) -> list[ImmigrationProgram]:
+        query = (
+            select(ImmigrationProgram)
+            .join(Country, Country.id == ImmigrationProgram.country_id)
+            .where(Country.code == country_code.upper(), ImmigrationProgram.is_active.is_(True))
+            .order_by(ImmigrationProgram.code.asc())
+        )
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
@@ -97,6 +116,29 @@ class ImmigrationRulesRepository:
             select(ProgramVersion)
             .where(ProgramVersion.program_id == program_id)
             .order_by(ProgramVersion.effective_from.desc())
+        )
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
+    async def get_latest_program_version_for_program(
+        self, program_id: UUID
+    ) -> ProgramVersion | None:
+        query = (
+            select(ProgramVersion)
+            .where(ProgramVersion.program_id == program_id)
+            .order_by(ProgramVersion.effective_from.desc(), ProgramVersion.created_at.desc())
+            .limit(1)
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
+
+    async def list_source_documents_by_program_version(
+        self, program_version_id: UUID
+    ) -> list[SourceDocument]:
+        query = (
+            select(SourceDocument)
+            .where(SourceDocument.program_version_id == program_version_id)
+            .order_by(SourceDocument.created_at.asc())
         )
         result = await self.db.execute(query)
         return list(result.scalars().all())

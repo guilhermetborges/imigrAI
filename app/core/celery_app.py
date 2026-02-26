@@ -30,11 +30,13 @@ celery_app.conf.update(
         Queue("score_queue"),
         Queue("roadmap_queue"),
         Queue("ingestion_queue"),
+        Queue("dead_letter_queue"),
     ),
     task_routes={
         "apps.assessments.tasks.process_assessment_task": {"queue": "score_queue"},
         "apps.roadmaps.tasks.generate_roadmap_task": {"queue": "roadmap_queue"},
         "apps.ingestion.tasks.ingest_source_task": {"queue": "ingestion_queue"},
+        "apps.common.tasks.dead_letter_event": {"queue": "dead_letter_queue"},
     },
     task_queue_max_priority=10,
     broker_transport_options={
@@ -48,6 +50,6 @@ celery_app.conf.update(
         "dispatch-ingestion-every-6-hours": {
             "task": "apps.ingestion.tasks.dispatch_scheduled_ingestion",
             "schedule": 21600.0,
-        }
+        },
     },
 )

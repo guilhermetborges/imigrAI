@@ -1,8 +1,9 @@
+import json
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from apps.assessments.models import AssessmentStatus
 
@@ -29,6 +30,16 @@ class AssessmentCreate(BaseModel):
     program_id: UUID
     profile_json: dict
     idempotency_key: str = Field(min_length=1, max_length=128)
+
+    @field_validator("profile_json")
+    @classmethod
+    def validate_profile_payload(cls, value: dict) -> dict:
+        serialized = json.dumps(value, ensure_ascii=True)
+        if len(serialized) > 30000:
+            raise ValueError("profile_json payload is too large")
+        if not value:
+            raise ValueError("profile_json cannot be empty")
+        return value
 
 
 class AssessmentPersistCreate(BaseModel):

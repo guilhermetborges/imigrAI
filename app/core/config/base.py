@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -27,6 +27,7 @@ class BaseConfig(BaseSettings):
     database_pool_size: int = 10
     database_max_overflow: int = 20
     database_pool_timeout_seconds: int = 30
+    db_slow_query_threshold_ms: float = 250
     redis_url: str = "redis://redis:6379/0"
 
     celery_broker_url: str = "redis://redis:6379/0"
@@ -85,6 +86,35 @@ class BaseConfig(BaseSettings):
     ingestion_quarantine_hours: int = 24
 
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000"]
+    cors_allow_methods: Annotated[list[str], NoDecode] = [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS",
+    ]
+    cors_allow_headers: Annotated[list[str], NoDecode] = [
+        "Authorization",
+        "Content-Type",
+        "X-Trace-Id",
+        "Stripe-Signature",
+        "Idempotency-Key",
+    ]
+    cors_allow_credentials: bool = True
+    trusted_hosts: Annotated[list[str], NoDecode] = ["localhost", "127.0.0.1", "testserver"]
+    admin_emails: Annotated[list[str], NoDecode] = []
+
+    auth_rate_limit_requests: int = 10
+    auth_rate_limit_window_seconds: int = 60
+    creation_rate_limit_requests: int = 20
+    creation_rate_limit_window_seconds: int = 60
+    rate_limit_fail_open: bool = True
+
+    llm_circuit_breaker_failure_threshold: int = 3
+    llm_circuit_breaker_recovery_seconds: int = 120
+    max_request_body_bytes: int = 1_048_576
+    force_https_redirect: bool = False
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -92,6 +122,44 @@ class BaseConfig(BaseSettings):
         if isinstance(value, list):
             return value
         return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+    @field_validator(
+        "trusted_hosts",
+        "admin_emails",
+        "cors_allow_methods",
+        "cors_allow_headers",
+        mode="before",
+    )
+    @classmethod
+    def parse_string_list(cls, value: str | list[str]) -> list[str]:
+        if isinstance(value, list):
+            return [item.strip() for item in value if str(item).strip()]
+        return [item.strip() for item in value.split(",") if item.strip()]
+
+    @model_validator(mode="after")
+    def validate_production_security(self):
+        if self.app_env not in {"prod", "staging"}:
+            return self
+
+        if self.jwt_secret_key == "change-me":
+            raise ValueError("JWT_SECRET_KEY must be set via secret manager in production")
+        if self.ingestion_internal_token in {None, "", "change-me-internal-token"}:
+            raise ValueError(
+                "INGESTION_INTERNAL_TOKEN must be set via secret manager in production"
+            )
+        if "*" in self.trusted_hosts:
+            raise ValueError("TRUSTED_HOSTS cannot contain wildcard in production")
+        if not self.force_https_redirect:
+            raise ValueError("FORCE_HTTPS_REDIRECT must be true in production")
+        for origin in self.cors_origins:
+            lower_origin = origin.lower()
+            if lower_origin.startswith("http://localhost") or lower_origin.startswith(
+                "http://127.0.0.1"
+            ):
+                raise ValueError("CORS_ORIGINS must not include localhost in production")
+            if not lower_origin.startswith("https://"):
+                raise ValueError("CORS_ORIGINS must use HTTPS in production")
+        return self
 
 
 @lru_cache(maxsize=1)

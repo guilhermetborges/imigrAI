@@ -14,10 +14,16 @@ from apps.immigration_rules.models import (
 class CountryCreate(BaseModel):
     code: str = Field(min_length=2, max_length=2)
     name: str = Field(min_length=2, max_length=120)
+    priority_rank: int | None = None
+    diaspora_population_estimate: int | None = None
+    prioritization_source_url: str | None = None
 
 
 class CountryUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=120)
+    priority_rank: int | None = None
+    diaspora_population_estimate: int | None = None
+    prioritization_source_url: str | None = None
     is_active: bool | None = None
 
 
@@ -27,6 +33,9 @@ class CountryRead(BaseModel):
     id: UUID
     code: str
     name: str
+    priority_rank: int | None
+    diaspora_population_estimate: int | None
+    prioritization_source_url: str | None
     is_active: bool
     created_at: datetime
 
@@ -173,3 +182,33 @@ class RuleOutcomeRead(BaseModel):
     explanation_message: str
     outcome_code: str | None
     created_at: datetime
+
+
+class CountryCatalogRead(BaseModel):
+    code: str
+    name: str
+    priority_rank: int | None
+    diaspora_population_estimate: int | None
+    program_count: int
+    rule_coverage_status: str
+
+
+class ProgramSourceCatalogRead(BaseModel):
+    source_key: str | None
+    title: str
+    source_url: str
+
+
+class ProgramCatalogRead(BaseModel):
+    code: str
+    name: str
+    description: str | None
+    version: str | None
+    version_status: ProgramVersionStatus | None
+    source_documents: list[ProgramSourceCatalogRead]
+
+
+class CountryProgramsCatalogRead(BaseModel):
+    country_code: str
+    country_name: str
+    programs: list[ProgramCatalogRead]

@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: imigrai
+    folder: imigrAI
+    type: file
+    disableDeletion: true
+    options:
+      path: /var/lib/grafana/dashboards

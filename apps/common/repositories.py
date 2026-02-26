@@ -1,10 +1,12 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.assessments.models import Assessment
 from apps.common.models import Job, JobStatus, JobType
+from apps.roadmaps.models import Roadmap
 
 
 class JobsRepository:
@@ -13,6 +15,16 @@ class JobsRepository:
 
     async def get_job(self, job_id: UUID) -> Job | None:
         result = await self.db.execute(select(Job).where(Job.id == job_id))
+        return result.scalar_one_or_none()
+
+    async def get_job_for_user(self, *, job_id: UUID, user_id: UUID) -> Job | None:
+        result = await self.db.execute(
+            select(Job)
+            .outerjoin(Assessment, Assessment.id == Job.assessment_id)
+            .outerjoin(Roadmap, Roadmap.id == Job.roadmap_id)
+            .where(Job.id == job_id)
+            .where(or_(Assessment.user_id == user_id, Roadmap.user_id == user_id))
+        )
         return result.scalar_one_or_none()
 
     async def get_job_by_key(

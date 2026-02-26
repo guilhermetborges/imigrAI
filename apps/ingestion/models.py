@@ -229,6 +229,13 @@ class SilverSection(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
 
 class SourceDocument(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     __tablename__ = "source_documents"
+    __table_args__ = (
+        UniqueConstraint(
+            "program_version_id",
+            "source_url",
+            name="uq_source_documents_program_version_source_url",
+        ),
+    )
 
     source_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("source_registry.id", ondelete="SET NULL"),

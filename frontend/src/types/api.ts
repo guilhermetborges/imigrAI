@@ -31,6 +31,7 @@ export interface RegisterRequest {
 export interface UserResponse {
   id: string;
   email: string;
+  role: "member" | "admin";
   is_active: boolean;
   created_at: string;
 }

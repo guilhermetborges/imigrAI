@@ -52,6 +52,9 @@ class Country(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
 
     code: Mapped[str] = mapped_column(String(2), nullable=False, unique=True, index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    priority_rank: Mapped[int | None] = mapped_column(Integer, index=True)
+    diaspora_population_estimate: Mapped[int | None] = mapped_column(Integer)
+    prioritization_source_url: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     programs: Mapped[list["ImmigrationProgram"]] = relationship(back_populates="country")

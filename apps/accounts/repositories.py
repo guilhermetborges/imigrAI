@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.accounts.models import User
+from apps.accounts.models import User, UserRole
 
 
 class UserRepository:
@@ -20,8 +20,14 @@ class UserRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def create(self, email: str, password_hash: str) -> User:
-        user = User(email=email, password_hash=password_hash)
+    async def create(
+        self,
+        *,
+        email: str,
+        password_hash: str,
+        role: UserRole = UserRole.member,
+    ) -> User:
+        user = User(email=email, password_hash=password_hash, role=role)
         self.db.add(user)
         await self.db.commit()
         await self.db.refresh(user)

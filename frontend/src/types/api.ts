@@ -64,6 +64,66 @@ export interface ProfileCreateRequest {
   profile_json: Record<string, unknown>;
 }
 
+export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+export type EducationLevel =
+  | "ensino_medio"
+  | "tecnico"
+  | "graduacao"
+  | "mestrado"
+  | "doutorado";
+export type ProfessionArea =
+  | "tecnologia"
+  | "engenharia"
+  | "saude"
+  | "negocios"
+  | "educacao"
+  | "servicos"
+  | "outros";
+export type PreferredRegion = "americas" | "europa" | "asia" | "indiferente";
+
+export interface ProfileMatchSubmitRequest {
+  age: number;
+  education_level: EducationLevel;
+  experience_years: number;
+  english_level: CEFRLevel;
+  french_level: CEFRLevel;
+  savings_brl: number;
+  monthly_income_brl: number;
+  profession_area: ProfessionArea;
+  has_job_offer: boolean;
+  has_family_abroad: boolean;
+  willing_to_learn_language: boolean;
+  wants_fast_citizenship: boolean;
+  preferred_region: PreferredRegion;
+  guest_session_id: string;
+}
+
+export interface CountryMatchRead {
+  country_code: string;
+  country_name: string;
+  match_score: number;
+  highlights: string[];
+}
+
+export interface ProfileMatchResultRead {
+  submission_id: string;
+  algorithm_version: string;
+  created_at: string;
+  profile_snapshot: Record<string, unknown>;
+  matches: CountryMatchRead[];
+}
+
+export interface ProfileMatchSubmitRead {
+  submission_id: string;
+  requires_login: boolean;
+  result: ProfileMatchResultRead | null;
+}
+
+export interface ProfileMatchClaimRequest {
+  submission_id: string;
+  guest_session_id: string;
+}
+
 export interface AssessmentQueuedRead {
   assessment_id: string;
   status: ApiStatus;

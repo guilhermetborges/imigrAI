@@ -18,9 +18,9 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-billing_provider = sa.Enum("stripe", name="billing_provider")
-billing_event_status = sa.Enum(
-    "received", "processed", "ignored", "failed", name="billing_event_status"
+billing_provider = postgresql.ENUM("stripe", name="billing_provider", create_type=False)
+billing_event_status = postgresql.ENUM(
+    "received", "processed", "ignored", "failed", name="billing_event_status", create_type=False
 )
 
 

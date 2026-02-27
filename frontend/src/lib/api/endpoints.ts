@@ -10,6 +10,8 @@ import {
   assessmentCreateSchema,
   checkoutSessionCreateSchema,
   loginRequestSchema,
+  profileMatchClaimSchema,
+  profileMatchSubmitSchema,
   registerRequestSchema,
   roadmapCreateSchema
 } from "@/lib/validation/api";
@@ -25,6 +27,10 @@ import type {
   JobRead,
   LoginRequest,
   PlanRead,
+  ProfileMatchClaimRequest,
+  ProfileMatchResultRead,
+  ProfileMatchSubmitRead,
+  ProfileMatchSubmitRequest,
   ProfileCreateRequest,
   RegisterRequest,
   RoadmapCreate,
@@ -121,6 +127,27 @@ export const profilesApi = {
       }
       throw error;
     }
+  }
+};
+
+export const profileMatchApi = {
+  async submit(payload: ProfileMatchSubmitRequest): Promise<ProfileMatchSubmitRead> {
+    const safePayload = profileMatchSubmitSchema.parse(payload);
+    const { data } = await apiClient.post<ProfileMatchSubmitRead>("/profile-match/submit", safePayload);
+    return data;
+  },
+
+  async claim(payload: ProfileMatchClaimRequest): Promise<ProfileMatchResultRead> {
+    const safePayload = profileMatchClaimSchema.parse(payload);
+    const { data } = await apiClient.post<ProfileMatchResultRead>("/profile-match/claim", safePayload);
+    return data;
+  },
+
+  async getResults(submissionId: string): Promise<ProfileMatchResultRead> {
+    const { data } = await apiClient.get<ProfileMatchResultRead>(
+      `/profile-match/${submissionId}/results`
+    );
+    return data;
   }
 };
 

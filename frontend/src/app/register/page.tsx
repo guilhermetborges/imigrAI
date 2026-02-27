@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -30,6 +30,13 @@ type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage(): JSX.Element {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const nextUrl =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : "/onboarding";
+  const loginHref = nextUrl === "/onboarding" ? "/login" : `/login?next=${encodeURIComponent(nextUrl)}`;
   const { register: registerAccount, status } = useAuth();
 
   const {
@@ -49,15 +56,15 @@ export default function RegisterPage(): JSX.Element {
     mutationFn: async (payload: RegisterValues) =>
       registerAccount({ email: payload.email, password: payload.password }),
     onSuccess: () => {
-      router.push("/onboarding");
+      router.push(nextUrl);
     }
   });
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/dashboard");
+      router.replace(nextUrl);
     }
-  }, [status, router]);
+  }, [status, router, nextUrl]);
 
   if (status === "loading") {
     return (
@@ -111,7 +118,7 @@ export default function RegisterPage(): JSX.Element {
 
         <p className="mt-4 text-sm text-muted">
           Ja possui acesso?{" "}
-          <Link href="/login" className="font-semibold text-brand hover:underline">
+          <Link href={loginHref} className="font-semibold text-brand hover:underline">
             Entrar
           </Link>
         </p>

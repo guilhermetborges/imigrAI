@@ -37,11 +37,6 @@ ingestion_parser_mode = sa.Enum("deterministic", "llm_fallback", name="ingestion
 
 
 def upgrade() -> None:
-    source_type.create(op.get_bind(), checkfirst=True)
-    ingestion_run_trigger.create(op.get_bind(), checkfirst=True)
-    ingestion_run_status.create(op.get_bind(), checkfirst=True)
-    ingestion_run_item_status.create(op.get_bind(), checkfirst=True)
-    ingestion_parser_mode.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "source_registry",

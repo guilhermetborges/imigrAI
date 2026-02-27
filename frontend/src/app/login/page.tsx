@@ -25,7 +25,13 @@ type LoginValues = z.infer<typeof loginSchema>;
 export default function LoginPage(): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get("next") ?? "/dashboard";
+  const nextParam = searchParams.get("next");
+  const nextUrl =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : "/dashboard";
+  const registerHref =
+    nextUrl === "/dashboard" ? "/register" : `/register?next=${encodeURIComponent(nextUrl)}`;
   const { login, status } = useAuth();
 
   const {
@@ -49,9 +55,9 @@ export default function LoginPage(): JSX.Element {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/dashboard");
+      router.replace(nextUrl);
     }
-  }, [status, router]);
+  }, [status, router, nextUrl]);
 
   if (status === "loading") {
     return (
@@ -98,7 +104,7 @@ export default function LoginPage(): JSX.Element {
 
         <p className="mt-4 text-sm text-muted">
           Nao possui conta?{" "}
-          <Link href="/register" className="font-semibold text-brand hover:underline">
+          <Link href={registerHref} className="font-semibold text-brand hover:underline">
             Crie agora
           </Link>
         </p>

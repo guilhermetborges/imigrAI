@@ -28,9 +28,6 @@ def upgrade() -> None:
     op.execute("ALTER TYPE roadmap_status ADD VALUE IF NOT EXISTS 'failed'")
     op.alter_column("roadmaps", "status", server_default="pending")
 
-    job_type.create(op.get_bind(), checkfirst=True)
-    job_status.create(op.get_bind(), checkfirst=True)
-
     op.create_table(
         "jobs",
         sa.Column("id", sa.UUID(), nullable=False),

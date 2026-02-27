@@ -7,6 +7,7 @@ from app.api.v1.entitlements import router as entitlements_router
 from app.api.v1.immigration_rules import router as immigration_rules_router
 from app.api.v1.ingestion import router as ingestion_router
 from app.api.v1.jobs import router as jobs_router
+from app.api.v1.profile_match import router as profile_match_router
 from app.api.v1.roadmaps import router as roadmaps_router
 
 router = APIRouter(prefix="/api/v1")
@@ -15,6 +16,7 @@ router.include_router(billing_router)
 router.include_router(entitlements_router)
 router.include_router(immigration_rules_router)
 router.include_router(ingestion_router)
+router.include_router(profile_match_router)
 router.include_router(assessments_router)
 router.include_router(roadmaps_router)
 router.include_router(jobs_router)

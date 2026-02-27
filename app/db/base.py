@@ -25,6 +25,7 @@ from apps.ingestion.models import (
     SourceExtraction,
     SourceRegistry,
 )
+from apps.profile_match.models import ProfileMatchSubmission
 from apps.roadmaps.models import Roadmap, RoadmapStep
 
 __all__ = [
@@ -38,6 +39,7 @@ __all__ = [
     "ImmigrationProgram",
     "Job",
     "Plan",
+    "ProfileMatchSubmission",
     "ProgramVersion",
     "Roadmap",
     "RoadmapStep",

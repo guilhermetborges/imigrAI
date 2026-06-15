@@ -1,6 +1,6 @@
 # imigrai backend bootstrap
 
-Bootstrap do backend FastAPI para o SaaS de imigracao.
+Bootstrap do backend FastAPI para o SaaS de imigracao.!
 
 ## Stack
 

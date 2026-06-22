@@ -42,9 +42,9 @@ class ImmigrationRulesRepository:
 
     async def list_countries_for_catalog(self) -> list[Country]:
         result = await self.db.execute(
-            select(Country).where(Country.is_active.is_(True)).order_by(
-                Country.priority_rank.asc().nulls_last(), Country.code.asc()
-            )
+            select(Country)
+            .where(Country.is_active.is_(True))
+            .order_by(Country.priority_rank.asc().nulls_last(), Country.code.asc())
         )
         return list(result.scalars().all())
 

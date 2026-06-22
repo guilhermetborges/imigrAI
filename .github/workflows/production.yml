@@ -1,16 +1,14 @@
-name: CD
+name: Production CD
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
 
 concurrency:
-  group: cd-${{ github.ref }}
+  group: production-cd-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -35,11 +33,11 @@ jobs:
           docker build -f frontend/Dockerfile -t "$IMAGE" frontend
           docker push "$IMAGE"
 
-  staging-migrate:
-    name: Staging Migration Validation
+  production-migrate:
+    name: Production Migration Validation
     runs-on: ubuntu-latest
     needs: publish-images
-    environment: staging
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
@@ -52,18 +50,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Run staging migrations safely
+      - name: Run production migrations safely
         run: |
           python scripts/run_migrations_safe.py \
-            --database-url "${{ secrets.STAGING_DATABASE_URL }}" \
-            --alembic-database-url "${{ secrets.STAGING_ALEMBIC_DATABASE_URL }}" \
-            --label "staging"
+            --database-url "${{ secrets.PRODUCTION_DATABASE_URL }}" \
+            --alembic-database-url "${{ secrets.PRODUCTION_ALEMBIC_DATABASE_URL }}" \
+            --label "production"
 
-  staging-deploy:
-    name: Deploy Staging
+  production-deploy:
+    name: Deploy Production (Manual Approval)
     runs-on: ubuntu-latest
-    needs: staging-migrate
-    environment: staging
+    needs: production-migrate
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
@@ -71,28 +69,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Trigger staging deploy
+      - name: Trigger production deploy
         run: |
           python scripts/deploy_webhook.py \
-            --url "${{ secrets.STAGING_DEPLOY_WEBHOOK_URL }}" \
-            --environment staging \
+            --url "${{ secrets.PRODUCTION_DEPLOY_WEBHOOK_URL }}" \
+            --environment production \
             --sha "${{ github.sha }}" \
             --ref "${{ github.ref_name }}" \
-            --token "${{ secrets.STAGING_DEPLOY_WEBHOOK_TOKEN }}"
+            --token "${{ secrets.PRODUCTION_DEPLOY_WEBHOOK_TOKEN }}"
 
-  staging-seed-and-smoke:
-    name: Seed + Smoke Staging
+  production-seed-and-smoke:
+    name: Seed + Smoke Production
     runs-on: ubuntu-latest
-    needs: staging-deploy
-    environment: staging
+    needs: production-deploy
+    environment: production
     env:
-      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-      ALEMBIC_DATABASE_URL: ${{ secrets.STAGING_ALEMBIC_DATABASE_URL }}
-      REDIS_URL: ${{ secrets.STAGING_REDIS_URL }}
-      CELERY_BROKER_URL: ${{ secrets.STAGING_REDIS_URL }}
-      CELERY_RESULT_BACKEND: ${{ secrets.STAGING_REDIS_RESULT_BACKEND }}
-      JWT_SECRET_KEY: ${{ secrets.STAGING_JWT_SECRET_KEY }}
-      INGESTION_INTERNAL_TOKEN: ${{ secrets.STAGING_INGESTION_INTERNAL_TOKEN }}
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      ALEMBIC_DATABASE_URL: ${{ secrets.PRODUCTION_ALEMBIC_DATABASE_URL }}
+      REDIS_URL: ${{ secrets.PRODUCTION_REDIS_URL }}
+      CELERY_BROKER_URL: ${{ secrets.PRODUCTION_REDIS_URL }}
+      CELERY_RESULT_BACKEND: ${{ secrets.PRODUCTION_REDIS_RESULT_BACKEND }}
+      JWT_SECRET_KEY: ${{ secrets.PRODUCTION_JWT_SECRET_KEY }}
+      INGESTION_INTERNAL_TOKEN: ${{ secrets.PRODUCTION_INGESTION_INTERNAL_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -105,12 +103,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Seed initial data on staging
+      - name: Seed initial data on production
         run: python scripts/seed_initial_data.py
 
-      - name: Smoke tests on staging
+      - name: Smoke tests on production
         run: |
           python scripts/smoke_test.py \
-            --base-url "${{ secrets.STAGING_API_BASE_URL }}" \
+            --base-url "${{ secrets.PRODUCTION_API_BASE_URL }}" \
             --run-auth-flow \
-            --email-prefix "staging-smoke"
+            --email-prefix "prod-smoke"

@@ -21,9 +21,7 @@ async def check_seed() -> dict[str, object]:
     async with AsyncSessionLocal() as db:
         seeded_country_count = int(
             await db.scalar(
-                select(func.count())
-                .select_from(Country)
-                .where(Country.code.in_(country_codes))
+                select(func.count()).select_from(Country).where(Country.code.in_(country_codes))
             )
             or 0
         )

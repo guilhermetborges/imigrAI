@@ -234,9 +234,10 @@ export async function mockUpgradeAndRoadmap(page: Page, setPro: () => void): Pro
       return route.fallback();
     }
     setPro();
+    const origin = new URL(page.url()).origin;
     return json(route, {
       checkout_session_id: "cs-e2e",
-      checkout_url: `http://127.0.0.1:3000/results/${E2E_ASSESSMENT_ID}?success=1`
+      checkout_url: `${origin}/results/${E2E_ASSESSMENT_ID}?success=1`
     }, 201);
   });
 

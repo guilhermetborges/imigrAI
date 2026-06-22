@@ -18,7 +18,7 @@ T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
 
-class SupabaseDataGateway:
+class LocalDataGateway:
     def __init__(
         self,
         db: AsyncSession,
@@ -136,3 +136,6 @@ class SupabaseDataGateway:
                 return source.consecutive_failures, should_quarantine
 
         return await self.with_retry("mark_source_failure", _mark)
+
+
+SupabaseDataGateway = LocalDataGateway

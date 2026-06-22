@@ -3,6 +3,10 @@
 node_modules
 .next
 coverage
+coverage.xml
+.coverage
+data/
+.cache/
 frontend/playwright-report
 frontend/test-results
 __pycache__/

@@ -11,7 +11,7 @@ from app.core.config import get_settings
 from apps.ingestion.diff_engine import DiffEngine
 from apps.ingestion.extractors import DeterministicExtractor, LLMFallbackExtractor
 from apps.ingestion.fetchers import SourceFetcher
-from apps.ingestion.gateway import SupabaseDataGateway
+from apps.ingestion.gateway import LocalDataGateway
 from apps.ingestion.models import (
     IngestionRunItemStatus,
     IngestionRunStatus,
@@ -36,7 +36,7 @@ class SourceRegistryService:
         self.db = db
         self.repo = IngestionRepository(db)
         settings = get_settings()
-        self.gateway = SupabaseDataGateway(
+        self.gateway = LocalDataGateway(
             db,
             max_retries=settings.ingestion_gateway_max_retries,
             base_backoff_seconds=settings.ingestion_gateway_base_backoff_seconds,
@@ -59,7 +59,7 @@ class IngestionPipelineService:
         self.db = db
         self.repo = IngestionRepository(db)
         self.settings = get_settings()
-        self.gateway = SupabaseDataGateway(
+        self.gateway = LocalDataGateway(
             db,
             max_retries=self.settings.ingestion_gateway_max_retries,
             base_backoff_seconds=self.settings.ingestion_gateway_base_backoff_seconds,
@@ -73,8 +73,6 @@ class IngestionPipelineService:
         )
         self.storage = BronzeStorageClient(
             bucket=self.settings.ingestion_bronze_bucket,
-            supabase_url=self.settings.supabase_project_url,
-            service_role_key=self.settings.supabase_service_role_key,
             local_fallback_dir=self.settings.ingestion_local_fallback_dir,
         )
         self.deterministic_extractor = DeterministicExtractor()

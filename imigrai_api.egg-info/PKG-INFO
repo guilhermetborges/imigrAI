@@ -5,23 +5,20 @@ Summary: Backend bootstrap for imigrai SaaS
 Requires-Python: >=3.12
 Description-Content-Type: text/markdown
 Requires-Dist: alembic>=1.13.2
-Requires-Dist: asyncpg>=0.29.0
-Requires-Dist: celery[redis]>=5.4.0
+Requires-Dist: aiosqlite>=0.20.0
+Requires-Dist: celery>=5.4.0
 Requires-Dist: email-validator>=2.2.0
 Requires-Dist: fastapi>=0.115.0
 Requires-Dist: openai>=1.51.0
-Requires-Dist: psycopg[binary]>=3.2.1
 Requires-Dist: prometheus-client>=0.21.1
 Requires-Dist: pwdlib[argon2]>=0.3.0
 Requires-Dist: pydantic-settings>=2.4.0
 Requires-Dist: python-json-logger>=2.0.7
 Requires-Dist: python-jose[cryptography]>=3.3.0
-Requires-Dist: redis>=5.0.7
 Requires-Dist: sqlalchemy[asyncio]>=2.0.34
 Requires-Dist: stripe>=11.6.0
 Requires-Dist: uvicorn[standard]>=0.30.6
 Provides-Extra: dev
-Requires-Dist: aiosqlite>=0.20.0; extra == "dev"
 Requires-Dist: black>=24.8.0; extra == "dev"
 Requires-Dist: httpx>=0.27.2; extra == "dev"
 Requires-Dist: pre-commit>=3.8.0; extra == "dev"
@@ -32,7 +29,7 @@ Requires-Dist: ruff>=0.6.4; extra == "dev"
 
 # imigrai backend bootstrap
 
-Bootstrap do backend FastAPI para o SaaS de imigracao.
+Bootstrap do backend FastAPI para o SaaS de imigracao.!
 
 ## Stack
 
@@ -93,10 +90,12 @@ alembic upgrade head
 
 ## Seed de Regras MVP
 
-Fixtures iniciais para 3 paises (`CA`, `AU`, `PT`):
+Fixtures de exemplo para score em 6 paises (`CA`, `AU`, `PT`, `US`, `GB`, `DE`):
 
 ```bash
 python scripts/seed_mvp_rules.py
+# opcional: subset de paises
+python scripts/seed_mvp_rules.py --countries US PT DE
 ```
 
 ## Ingestao automatizada (Bronze/Silver/Gold)
@@ -135,4 +134,28 @@ ruff check .
 black --check .
 pytest
 pre-commit install
+```
+
+## CI/CD MVP
+
+- CI versionado em `.github/workflows/ci.yml`:
+  - lint + format check
+  - testes backend (unit, integracao Postgres, contrato OpenAPI, Celery tasks)
+  - testes frontend (unit + e2e)
+  - build de imagens Docker (backend + frontend)
+- CD versionado em `.github/workflows/cd.yml`:
+  - staging automatico na `main`
+  - producao manual com aprovacao via GitHub Environment
+  - migracao Alembic segura antes do deploy
+  - seed inicial e smoke tests pos-deploy
+
+Scripts de operacao:
+
+```bash
+python scripts/run_migrations_safe.py --database-url "$DATABASE_URL" --alembic-database-url "$ALEMBIC_DATABASE_URL"
+python -m app.cli seed-mvp
+python -m app.cli check-mvp-seed
+# legado/compatibilidade:
+python scripts/seed_initial_data.py
+python scripts/smoke_test.py --base-url "http://localhost:8000" --run-auth-flow
 ```

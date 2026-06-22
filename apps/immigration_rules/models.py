@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
-    Computed,
     DateTime,
     Enum,
     ForeignKey,
@@ -16,7 +16,6 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TSTZRANGE
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -104,12 +103,6 @@ class ProgramVersion(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
     effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    effective_period: Mapped[object] = mapped_column(
-        TSTZRANGE(),
-        Computed("tstzrange(effective_from, effective_to, '[)')", persisted=True),
-        nullable=False,
-    )
-
     program: Mapped["ImmigrationProgram"] = relationship(back_populates="versions")
     rule_groups: Mapped[list["RuleGroup"]] = relationship(back_populates="program_version")
     source_documents: Mapped[list["SourceDocument"]] = relationship(
@@ -157,7 +150,7 @@ class RuleCondition(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         Enum(RuleOperator, name="rule_operator"),
         nullable=False,
     )
-    value_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    value_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     condition_order: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     is_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 

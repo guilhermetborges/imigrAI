@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     Enum,
@@ -13,7 +14,6 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -74,10 +74,10 @@ class RoadmapStep(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     step_order: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str] = mapped_column(String(180), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    related_gap_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    related_gap_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     is_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     eta_weeks: Mapped[int | None] = mapped_column(Integer)
-    dependencies_json: Mapped[list[int]] = mapped_column(JSONB, nullable=False, default=list)
+    dependencies_json: Mapped[list[int]] = mapped_column(JSON, nullable=False, default=list)
     risk_level: Mapped[str] = mapped_column(String(16), nullable=False, default="medio")
     completion_criteria: Mapped[str] = mapped_column(Text, nullable=False, default="")
 

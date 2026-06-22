@@ -24,8 +24,8 @@ def _run(cmd: list[str], *, env: dict[str, str], capture_output: bool = False) -
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run alembic migrations with safety checks.")
-    parser.add_argument("--database-url", required=True, help="asyncpg URL used by application")
-    parser.add_argument("--alembic-database-url", required=True, help="psycopg URL for Alembic")
+    parser.add_argument("--database-url", required=True, help="Database URL used by application")
+    parser.add_argument("--alembic-database-url", required=True, help="Database URL for Alembic")
     parser.add_argument("--label", default="target", help="target label for logs")
     return parser.parse_args()
 

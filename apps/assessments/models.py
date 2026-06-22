@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     Enum,
@@ -14,7 +15,6 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -41,7 +41,7 @@ class UserProfileSnapshot(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         index=True,
     )
     snapshot_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    profile_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    profile_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     profile_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
 
     user: Mapped["User"] = relationship()
@@ -135,7 +135,7 @@ class AssessmentResultItem(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     applied: Mapped[bool] = mapped_column(Boolean, nullable=False)
     score_delta: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
     explanation_message: Mapped[str] = mapped_column(Text, nullable=False)
-    audit_payload_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    audit_payload_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
     assessment_result: Mapped["AssessmentResult"] = relationship(back_populates="items")
 

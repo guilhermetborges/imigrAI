@@ -1,6 +1,7 @@
 README.md
 pyproject.toml
 app/__init__.py
+app/cli.py
 app/main.py
 app/api/__init__.py
 app/api/health.py
@@ -9,10 +10,12 @@ app/api/v1/__init__.py
 app/api/v1/assessments.py
 app/api/v1/auth.py
 app/api/v1/billing.py
+app/api/v1/countries_catalog.py
 app/api/v1/entitlements.py
 app/api/v1/immigration_rules.py
 app/api/v1/ingestion.py
 app/api/v1/jobs.py
+app/api/v1/profile_match.py
 app/api/v1/roadmaps.py
 app/api/v1/router.py
 app/core/__init__.py
@@ -43,6 +46,8 @@ app/db/migrations/versions/20260225_0003_async_jobs_and_roadmaps.py
 app/db/migrations/versions/20260225_0004_billing_freemium.py
 app/db/migrations/versions/20260225_0005_ingestion_pipeline_automation.py
 app/db/migrations/versions/20260225_0006_security_roles_and_multitenant_rls.py
+app/db/migrations/versions/20260225_0007_mvp_country_catalog_seed_support.py
+app/db/migrations/versions/20260225_0008_profile_match_submissions.py
 app/db/migrations/versions/__init__.py
 apps/__init__.py
 apps/accounts/__init__.py
@@ -76,6 +81,8 @@ apps/immigration_rules/models.py
 apps/immigration_rules/repositories.py
 apps/immigration_rules/schemas.py
 apps/immigration_rules/services.py
+apps/immigration_rules/fixtures/__init__.py
+apps/immigration_rules/fixtures/mvp_country_catalog.py
 apps/ingestion/__init__.py
 apps/ingestion/diff_engine.py
 apps/ingestion/extractors.py
@@ -89,6 +96,11 @@ apps/ingestion/services.py
 apps/ingestion/source_seeds.py
 apps/ingestion/storage.py
 apps/ingestion/tasks.py
+apps/profile_match/__init__.py
+apps/profile_match/models.py
+apps/profile_match/repositories.py
+apps/profile_match/schemas.py
+apps/profile_match/services.py
 apps/roadmaps/__init__.py
 apps/roadmaps/llm.py
 apps/roadmaps/models.py
@@ -106,4 +118,6 @@ tests/test_auth.py
 tests/test_billing_freemium.py
 tests/test_health.py
 tests/test_ingestion_parsers.py
+tests/test_mvp_catalog_seed_data.py
+tests/test_openapi_contract.py
 tests/test_score_engine.py

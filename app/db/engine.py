@@ -1,5 +1,7 @@
 import logging
 import time
+from pathlib import Path
+from urllib.parse import urlparse
 
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -10,13 +12,22 @@ from app.core.metrics import increment_slow_query, increment_transaction_error, 
 settings = get_settings()
 logger = logging.getLogger("db.query")
 
-engine = create_async_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    pool_size=settings.database_pool_size,
-    max_overflow=settings.database_max_overflow,
-    pool_timeout=settings.database_pool_timeout_seconds,
-)
+
+def _engine_kwargs() -> dict:
+    if settings.database_url.startswith("sqlite"):
+        parsed = urlparse(settings.database_url)
+        if parsed.path and parsed.path not in {"", "/:memory:"}:
+            Path(parsed.path.lstrip("/")).parent.mkdir(parents=True, exist_ok=True)
+        return {"connect_args": {"check_same_thread": False}}
+    return {
+        "pool_pre_ping": True,
+        "pool_size": settings.database_pool_size,
+        "max_overflow": settings.database_max_overflow,
+        "pool_timeout": settings.database_pool_timeout_seconds,
+    }
+
+
+engine = create_async_engine(settings.database_url, **_engine_kwargs())
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 

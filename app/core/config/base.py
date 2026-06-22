@@ -22,16 +22,18 @@ class BaseConfig(BaseSettings):
 
     api_v1_prefix: str = "/api/v1"
 
-    database_url: str = "postgresql+asyncpg://imigrai:imigrai@postgres:5432/imigrai"
-    alembic_database_url: str = "postgresql+psycopg://imigrai:imigrai@postgres:5432/imigrai"
+    database_url: str = "sqlite+aiosqlite:///./data/imigrai.db"
+    alembic_database_url: str = "sqlite:///./data/imigrai.db"
     database_pool_size: int = 10
     database_max_overflow: int = 20
     database_pool_timeout_seconds: int = 30
     db_slow_query_threshold_ms: float = 250
-    redis_url: str = "redis://redis:6379/0"
+    redis_url: str = "memory://"
 
-    celery_broker_url: str = "redis://redis:6379/0"
-    celery_result_backend: str = "redis://redis:6379/1"
+    celery_broker_url: str = "memory://"
+    celery_result_backend: str = "cache+memory://"
+    celery_task_always_eager: bool = True
+    init_local_database: bool = True
     score_task_max_retries: int = 3
     score_task_soft_time_limit_seconds: int = 25
     score_task_time_limit_seconds: int = 35
@@ -71,9 +73,6 @@ class BaseConfig(BaseSettings):
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
     stripe_pro_price_id: str | None = None
-    supabase_project_url: str | None = None
-    supabase_service_role_key: str | None = None
-
     ingestion_internal_token: str | None = None
     ingestion_user_agent: str = "imigrAI-ingestion-bot/1.0"
     ingestion_fetch_timeout_seconds: int = 40
@@ -143,7 +142,7 @@ class BaseConfig(BaseSettings):
 
         if self.jwt_secret_key == "change-me":
             raise ValueError("JWT_SECRET_KEY must be set via secret manager in production")
-        if self.ingestion_internal_token in {None, "", "change-me-internal-token"}:
+        if not self.ingestion_internal_token:
             raise ValueError(
                 "INGESTION_INTERNAL_TOKEN must be set via secret manager in production"
             )

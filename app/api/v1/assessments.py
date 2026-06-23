@@ -27,7 +27,7 @@ creation_rate_limiter = rate_limit(
 )
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
-TraceIdHeader = Annotated[str | None, Header(default=None)]
+TraceIdHeader = Annotated[str | None, Header()]
 
 
 @router.post(
@@ -40,7 +40,7 @@ async def create_assessment(
     request: Request,
     db: DbSession,
     current_user: CurrentUser,
-    x_trace_id: TraceIdHeader,
+    x_trace_id: TraceIdHeader = None,
 ) -> AssessmentQueuedRead:
     service = AssessmentsService(db)
     trace_id = x_trace_id or getattr(request.state, "trace_id", None)

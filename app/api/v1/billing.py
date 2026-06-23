@@ -21,7 +21,7 @@ creation_rate_limiter = rate_limit(
 )
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
-StripeSignatureHeader = Annotated[str | None, Header(default=None, alias="Stripe-Signature")]
+StripeSignatureHeader = Annotated[str | None, Header(alias="Stripe-Signature")]
 
 
 @router.post(
@@ -46,7 +46,7 @@ async def create_checkout_session(
 async def stripe_webhook(
     request: Request,
     db: DbSession,
-    stripe_signature: StripeSignatureHeader,
+    stripe_signature: StripeSignatureHeader = None,
 ) -> StripeWebhookAck:
     payload = await request.body()
     service = BillingService(db)

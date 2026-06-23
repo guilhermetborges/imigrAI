@@ -2,7 +2,7 @@ const RECENT_ASSESSMENTS_KEY = "imigrai_recent_assessments";
 const RECENT_ROADMAPS_KEY = "imigrai_recent_roadmaps";
 
 function readList(key: string): string[] {
-  if (typeof globalThis.window === "undefined") {
+  if (globalThis.window === undefined) {
     return [];
   }
 
@@ -24,7 +24,7 @@ function readList(key: string): string[] {
 }
 
 function writeList(key: string, values: string[]): void {
-  if (typeof globalThis.window === "undefined") {
+  if (globalThis.window === undefined) {
     return;
   }
 

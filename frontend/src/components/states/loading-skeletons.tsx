@@ -16,10 +16,12 @@ interface ListSkeletonProps {
 }
 
 export function ListSkeleton({ rows = 4 }: Readonly<ListSkeletonProps>): JSX.Element {
+  const rowKeys = Array.from({ length: rows }, (_, index) => `skeleton-row-${index + 1}`);
+
   return (
     <div className="space-y-3">
-      {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="rounded-xl border border-ink/10 bg-white p-4">
+      {rowKeys.map((rowKey) => (
+        <div key={rowKey} className="rounded-xl border border-ink/10 bg-white p-4">
           <Skeleton className="h-4 w-1/3" />
           <Skeleton className="mt-3 h-3 w-full" />
           <Skeleton className="mt-2 h-3 w-5/6" />

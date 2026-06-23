@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import text
@@ -9,6 +10,7 @@ from app.core.redis import ping_redis
 from app.db import AsyncSessionLocal, get_db
 
 router = APIRouter(prefix="/health", tags=["health"])
+DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
 @router.get("/live", status_code=status.HTTP_200_OK)
@@ -20,7 +22,7 @@ async def health_live() -> dict[str, str]:
 
 
 @router.get("/ready", status_code=status.HTTP_200_OK)
-async def health_ready(db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+async def health_ready(db: DbSession) -> dict[str, str]:
     try:
         await db.execute(text("SELECT 1"))
         memory_store_ok = await ping_redis()

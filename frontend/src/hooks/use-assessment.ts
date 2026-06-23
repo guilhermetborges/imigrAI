@@ -12,7 +12,7 @@ import type {
   AssessmentStatusRead
 } from "@/types/api";
 
-const terminalAssessmentStatuses = ["completed", "failed", "canceled"];
+const terminalAssessmentStatuses = new Set(["completed", "failed", "canceled"]);
 
 interface CreateAssessmentInput {
   programId: string;
@@ -56,7 +56,7 @@ export function useAssessmentStatus(assessmentId: string, enabled = true) {
     initialIntervalMs: 1_500,
     maxIntervalMs: 12_000,
     isTerminal: (data) =>
-      Boolean(data && terminalAssessmentStatuses.includes(data.status))
+      Boolean(data && terminalAssessmentStatuses.has(data.status))
   });
 
   useEffect(() => {

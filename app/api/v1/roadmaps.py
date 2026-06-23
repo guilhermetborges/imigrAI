@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Request, status
@@ -25,21 +26,24 @@ creation_rate_limiter = rate_limit(
     window_seconds=settings.creation_rate_limit_window_seconds,
     identity="user_or_ip",
 )
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
+RoadmapFeature = Annotated[str, Depends(require_feature(settings.pro_roadmap_feature_key))]
+TraceIdHeader = Annotated[str | None, Header()]
 
 
 @router.post(
     "",
-    response_model=RoadmapQueuedRead,
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(creation_rate_limiter)],
 )
 async def create_roadmap(
     payload: RoadmapCreate,
     request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    _: str = Depends(require_feature(settings.pro_roadmap_feature_key)),
-    x_trace_id: str | None = Header(default=None),
+    db: DbSession,
+    current_user: CurrentUser,
+    _: RoadmapFeature,
+    x_trace_id: TraceIdHeader = None,
 ) -> RoadmapQueuedRead:
     service = RoadmapsService(db)
     trace_id = x_trace_id or getattr(request.state, "trace_id", None)
@@ -50,21 +54,21 @@ async def create_roadmap(
     )
 
 
-@router.get("/{roadmap_id}/status", response_model=RoadmapStatusRead)
+@router.get("/{roadmap_id}/status")
 async def get_roadmap_status(
     roadmap_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: DbSession,
+    current_user: CurrentUser,
 ) -> RoadmapStatusRead:
     service = RoadmapsService(db)
     return await service.get_roadmap_status(roadmap_id=roadmap_id, user_id=current_user.id)
 
 
-@router.get("/{roadmap_id}", response_model=RoadmapDetailRead)
+@router.get("/{roadmap_id}")
 async def get_roadmap_detail(
     roadmap_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: DbSession,
+    current_user: CurrentUser,
 ) -> RoadmapDetailRead:
     service = RoadmapsService(db)
     return await service.get_roadmap_detail(roadmap_id=roadmap_id, user_id=current_user.id)

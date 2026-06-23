@@ -2,11 +2,11 @@ const RECENT_ASSESSMENTS_KEY = "imigrai_recent_assessments";
 const RECENT_ROADMAPS_KEY = "imigrai_recent_roadmaps";
 
 function readList(key: string): string[] {
-  if (typeof window === "undefined") {
+  if (typeof globalThis.window === "undefined") {
     return [];
   }
 
-  const raw = window.localStorage.getItem(key);
+  const raw = globalThis.window.localStorage.getItem(key);
   if (!raw) {
     return [];
   }
@@ -24,11 +24,11 @@ function readList(key: string): string[] {
 }
 
 function writeList(key: string, values: string[]): void {
-  if (typeof window === "undefined") {
+  if (typeof globalThis.window === "undefined") {
     return;
   }
 
-  window.localStorage.setItem(key, JSON.stringify(values.slice(0, 25)));
+  globalThis.window.localStorage.setItem(key, JSON.stringify(values.slice(0, 25)));
 }
 
 function addUniqueItem(key: string, item: string): void {

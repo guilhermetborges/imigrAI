@@ -16,7 +16,7 @@ export function trackEvent(
   event: TrackingEventName,
   payload: Record<string, unknown> = {}
 ): void {
-  if (typeof window === "undefined") {
+  if (typeof globalThis.window === "undefined") {
     return;
   }
 
@@ -26,8 +26,8 @@ export function trackEvent(
     ...payload
   };
 
-  if (Array.isArray(window.dataLayer)) {
-    window.dataLayer.push(envelope);
+  if (Array.isArray(globalThis.window.dataLayer)) {
+    globalThis.window.dataLayer.push(envelope);
   }
 
   if (process.env.NODE_ENV !== "production") {

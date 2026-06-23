@@ -41,7 +41,7 @@ class LocalDataGateway:
                 return await operation()
             except (OperationalError, DBAPIError) as exc:
                 if attempt >= self.max_retries:
-                    logger.error(
+                    logger.exception(
                         "gateway_operation_failed",
                         extra={
                             "operation": operation_name,
@@ -68,7 +68,7 @@ class LocalDataGateway:
         try:
             yield
             await self.db.commit()
-        except Exception:
+        except:
             await self.db.rollback()
             raise
 

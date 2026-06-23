@@ -8,13 +8,13 @@ import { trackEvent } from "@/lib/tracking";
 import { generateIdempotencyKey } from "@/lib/utils";
 import type { RoadmapDetailRead, RoadmapQueuedRead, RoadmapStatusRead } from "@/types/api";
 
-const terminalRoadmapStatuses = [
+const terminalRoadmapStatuses = new Set([
   "completed",
   "failed",
   "draft",
   "published",
   "archived"
-];
+]);
 
 interface CreateRoadmapInput {
   assessmentId: string;
@@ -47,7 +47,7 @@ export function useRoadmapStatus(roadmapId: string, enabled = true) {
     initialIntervalMs: 2_000,
     maxIntervalMs: 15_000,
     isTerminal: (data) =>
-      Boolean(data && terminalRoadmapStatuses.includes(data.status))
+      Boolean(data && terminalRoadmapStatuses.has(data.status))
   });
 }
 

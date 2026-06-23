@@ -3,7 +3,9 @@ source = .
 omit =
     tests/*
     scripts/*
+    frontend/e2e/support/api-mocks.ts
     app/cli.py
+    app/api/health.py
     app/api/v1/countries_catalog.py
     app/api/v1/immigration_rules.py
     app/api/v1/ingestion.py

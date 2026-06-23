@@ -21,7 +21,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Build and push backend image
         run: |
@@ -53,10 +55,13 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run production migrations safely
+        env:
+          PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          PRODUCTION_ALEMBIC_DATABASE_URL: ${{ secrets.PRODUCTION_ALEMBIC_DATABASE_URL }}
         run: |
           python scripts/run_migrations_safe.py \
-            --database-url "${{ secrets.PRODUCTION_DATABASE_URL }}" \
-            --alembic-database-url "${{ secrets.PRODUCTION_ALEMBIC_DATABASE_URL }}" \
+            --database-url "$PRODUCTION_DATABASE_URL" \
+            --alembic-database-url "$PRODUCTION_ALEMBIC_DATABASE_URL" \
             --label "production"
 
   production-deploy:
@@ -72,13 +77,16 @@ jobs:
           python-version: "3.12"
 
       - name: Trigger production deploy
+        env:
+          PRODUCTION_DEPLOY_WEBHOOK_URL: ${{ secrets.PRODUCTION_DEPLOY_WEBHOOK_URL }}
+          PRODUCTION_DEPLOY_WEBHOOK_TOKEN: ${{ secrets.PRODUCTION_DEPLOY_WEBHOOK_TOKEN }}
         run: |
           python scripts/deploy_webhook.py \
-            --url "${{ secrets.PRODUCTION_DEPLOY_WEBHOOK_URL }}" \
+            --url "$PRODUCTION_DEPLOY_WEBHOOK_URL" \
             --environment production \
             --sha "${{ github.sha }}" \
             --ref "${{ github.ref_name }}" \
-            --token "${{ secrets.PRODUCTION_DEPLOY_WEBHOOK_TOKEN }}"
+            --token "$PRODUCTION_DEPLOY_WEBHOOK_TOKEN"
 
   production-seed-and-smoke:
     name: Seed + Smoke Production
@@ -93,6 +101,7 @@ jobs:
       CELERY_RESULT_BACKEND: ${{ secrets.PRODUCTION_REDIS_RESULT_BACKEND }}
       JWT_SECRET_KEY: ${{ secrets.PRODUCTION_JWT_SECRET_KEY }}
       INGESTION_INTERNAL_TOKEN: ${{ secrets.PRODUCTION_INGESTION_INTERNAL_TOKEN }}
+      PRODUCTION_API_BASE_URL: ${{ secrets.PRODUCTION_API_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -111,6 +120,6 @@ jobs:
       - name: Smoke tests on production
         run: |
           python scripts/smoke_test.py \
-            --base-url "${{ secrets.PRODUCTION_API_BASE_URL }}" \
+            --base-url "$PRODUCTION_API_BASE_URL" \
             --run-auth-flow \
             --email-prefix "prod-smoke"

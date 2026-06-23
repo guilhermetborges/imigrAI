@@ -19,6 +19,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base
 from apps.common.models import CreatedAtMixin, UUIDPrimaryKeyMixin
 
+USERS_ID = "users.id"
+
 
 class PlanInterval(enum.StrEnum):
     month = "month"
@@ -80,7 +82,7 @@ class Subscription(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     __tablename__ = "subscriptions"
 
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey(USERS_ID, ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -129,7 +131,7 @@ class Entitlement(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
 
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey(USERS_ID, ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -169,7 +171,7 @@ class UsageCounter(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
 
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey(USERS_ID, ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

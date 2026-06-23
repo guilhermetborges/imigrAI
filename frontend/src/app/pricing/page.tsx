@@ -23,7 +23,7 @@ export default function PricingPage(): JSX.Element {
       return;
     }
 
-    if (typeof globalThis.window === "undefined") {
+    if (globalThis.window === undefined) {
       return;
     }
 

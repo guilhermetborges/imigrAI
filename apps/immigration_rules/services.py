@@ -22,6 +22,9 @@ from apps.immigration_rules.schemas import (
     RuleOutcomeUpdate,
 )
 
+PROGRAM_VERSION_NOT_FOUND = "Program version not found"
+RULE_GROUP_NOT_FOUND = "Rule group not found"
+
 
 class ImmigrationRulesService:
     def __init__(self, db: AsyncSession) -> None:
@@ -132,7 +135,7 @@ class ImmigrationRulesService:
         program_version = await self.repo.get_program_version(program_version_id)
         if program_version is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Program version not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=PROGRAM_VERSION_NOT_FOUND
             )
 
         for field, value in payload.model_dump(exclude_unset=True).items():
@@ -161,7 +164,7 @@ class ImmigrationRulesService:
         target = await self.repo.get_program_version(program_version_id, for_update=True)
         if target is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Program version not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=PROGRAM_VERSION_NOT_FOUND
             )
 
         overlap = await self.repo.find_active_overlap_for_program_version(target)
@@ -189,7 +192,7 @@ class ImmigrationRulesService:
         program_version = await self.repo.get_program_version(payload.program_version_id)
         if program_version is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Program version not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=PROGRAM_VERSION_NOT_FOUND
             )
 
         rule_group = await self.repo.create_rule_group(payload.model_dump())
@@ -199,9 +202,7 @@ class ImmigrationRulesService:
     async def update_rule_group(self, rule_group_id: UUID, payload: RuleGroupUpdate):
         rule_group = await self.repo.get_rule_group(rule_group_id)
         if rule_group is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Rule group not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=RULE_GROUP_NOT_FOUND)
 
         for field, value in payload.model_dump(exclude_unset=True).items():
             setattr(rule_group, field, value)
@@ -212,9 +213,7 @@ class ImmigrationRulesService:
     async def delete_rule_group(self, rule_group_id: UUID) -> None:
         rule_group = await self.repo.get_rule_group(rule_group_id)
         if rule_group is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Rule group not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=RULE_GROUP_NOT_FOUND)
 
         await self.db.delete(rule_group)
         await self.db.commit()
@@ -222,9 +221,7 @@ class ImmigrationRulesService:
     async def create_rule_condition(self, payload: RuleConditionCreate):
         rule_group = await self.repo.get_rule_group(payload.rule_group_id)
         if rule_group is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Rule group not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=RULE_GROUP_NOT_FOUND)
 
         condition = await self.repo.create_rule_condition(payload.model_dump())
         await self._commit_and_refresh(condition)
@@ -256,9 +253,7 @@ class ImmigrationRulesService:
     async def create_rule_outcome(self, payload: RuleOutcomeCreate):
         rule_group = await self.repo.get_rule_group(payload.rule_group_id)
         if rule_group is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Rule group not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=RULE_GROUP_NOT_FOUND)
 
         outcome = await self.repo.create_rule_outcome(payload.model_dump())
         await self._commit_and_refresh(outcome)

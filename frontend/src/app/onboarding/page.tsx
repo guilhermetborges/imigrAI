@@ -91,6 +91,97 @@ function toProfileJson(values: OnboardingValues): Record<string, unknown> {
   };
 }
 
+function renderStepFields(
+  step: number,
+  errors: ReturnType<typeof useForm<OnboardingValues>>["formState"]["errors"],
+  register: ReturnType<typeof useForm<OnboardingValues>>["register"],
+  programOptions: Array<{ value: string; label: string }>
+): JSX.Element | null {
+  if (step === 0) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        <Input label="Idade" type="number" min={18} max={80} error={errors.age?.message} {...register("age")} />
+        <Select
+          label="Escolaridade"
+          options={educationOptions.map((item) => ({ ...item }))}
+          error={errors.education?.message}
+          {...register("education")}
+        />
+      </div>
+    );
+  }
+
+  if (step === 1) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        <Input
+          label="Profissao"
+          placeholder="Ex: Engenheiro de Software"
+          error={errors.occupation?.message}
+          {...register("occupation")}
+        />
+        <Input
+          label="Anos de experiencia"
+          type="number"
+          min={0}
+          max={50}
+          error={errors.yearsExperience?.message}
+          {...register("yearsExperience")}
+        />
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        <Input
+          label="Idiomas"
+          placeholder="Ex: Ingles, Frances"
+          error={errors.languages?.message}
+          {...register("languages")}
+        />
+        <Select
+          label="Nivel predominante"
+          options={levelOptions.map((item) => ({ ...item }))}
+          error={errors.languageLevel?.message}
+          {...register("languageLevel")}
+        />
+      </div>
+    );
+  }
+
+  if (step === 3) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        <Input
+          label="Renda atual (BRL/mensal)"
+          type="number"
+          min={0}
+          error={errors.income?.message}
+          {...register("income")}
+        />
+        <Input
+          label="Paises de interesse"
+          placeholder="Ex: Canada, Portugal"
+          error={errors.countriesInterest?.message}
+          {...register("countriesInterest")}
+        />
+        <div className="md:col-span-2">
+          <Select
+            label="Programa alvo"
+            options={programOptions}
+            error={errors.programId?.message}
+            {...register("programId")}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function OnboardingPage(): JSX.Element {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -244,86 +335,7 @@ export default function OnboardingPage(): JSX.Element {
 
           {hasPrograms ? (
             <form className="mt-8 space-y-5" onSubmit={handleSubmit(submit)}>
-              {step === 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    label="Idade"
-                    type="number"
-                    min={18}
-                    max={80}
-                    error={errors.age?.message}
-                    {...register("age")}
-                  />
-                  <Select
-                    label="Escolaridade"
-                    options={educationOptions.map((item) => ({ ...item }))}
-                    error={errors.education?.message}
-                    {...register("education")}
-                  />
-                </div>
-              ) : null}
-
-              {step === 1 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    label="Profissao"
-                    placeholder="Ex: Engenheiro de Software"
-                    error={errors.occupation?.message}
-                    {...register("occupation")}
-                  />
-                  <Input
-                    label="Anos de experiencia"
-                    type="number"
-                    min={0}
-                    max={50}
-                    error={errors.yearsExperience?.message}
-                    {...register("yearsExperience")}
-                  />
-                </div>
-              ) : null}
-
-              {step === 2 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    label="Idiomas"
-                    placeholder="Ex: Ingles, Frances"
-                    error={errors.languages?.message}
-                    {...register("languages")}
-                  />
-                  <Select
-                    label="Nivel predominante"
-                    options={levelOptions.map((item) => ({ ...item }))}
-                    error={errors.languageLevel?.message}
-                    {...register("languageLevel")}
-                  />
-                </div>
-              ) : null}
-
-              {step === 3 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    label="Renda atual (BRL/mensal)"
-                    type="number"
-                    min={0}
-                    error={errors.income?.message}
-                    {...register("income")}
-                  />
-                  <Input
-                    label="Paises de interesse"
-                    placeholder="Ex: Canada, Portugal"
-                    error={errors.countriesInterest?.message}
-                    {...register("countriesInterest")}
-                  />
-                  <div className="md:col-span-2">
-                    <Select
-                      label="Programa alvo"
-                      options={programOptions}
-                      error={errors.programId?.message}
-                      {...register("programId")}
-                    />
-                  </div>
-                </div>
-              ) : null}
+              {renderStepFields(step, errors, register, programOptions)}
 
               {createAssessmentMutation.isError ? (
                 <div className="space-y-2 rounded-xl border border-danger/30 bg-danger/5 p-3">

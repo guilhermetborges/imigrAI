@@ -170,6 +170,44 @@ class RoadmapsService:
             steps=[RoadmapStepRead.model_validate(step) for step in roadmap.steps],
         )
 
+    @staticmethod
+    def _serialize_breakdown_item(
+        item, score_delta: Decimal, payload: dict, is_blocking: bool
+    ) -> dict:
+        return {
+            "rule_group_id": str(item.rule_group_id) if item.rule_group_id else None,
+            "rule_outcome_id": str(item.rule_outcome_id) if item.rule_outcome_id else None,
+            "applied": item.applied,
+            "score_delta": str(score_delta),
+            "message": item.explanation_message,
+            "is_blocking": is_blocking,
+            "condition_checks": payload.get("condition_checks", []),
+        }
+
+    @staticmethod
+    def _append_assessment_signals(
+        *,
+        item,
+        score_delta: Decimal,
+        is_blocking: bool,
+        gaps_criticos: list[str],
+        fatores_positivos: list[str],
+    ) -> None:
+        if not item.applied:
+            return
+        if is_blocking or score_delta < 0:
+            gaps_criticos.append(item.explanation_message)
+        if score_delta > 0:
+            fatores_positivos.append(item.explanation_message)
+
+    @staticmethod
+    def _score_band(score_final: Decimal) -> str:
+        if score_final >= Decimal("70.00"):
+            return "alto"
+        if score_final >= Decimal("40.00"):
+            return "medio"
+        return "baixo"
+
     def _build_provider_payload(self, roadmap: Roadmap) -> dict:
         result = roadmap.assessment_result
         assessment = result.assessment
@@ -186,30 +224,18 @@ class RoadmapsService:
             score_delta = Decimal(str(item.score_delta))
 
             breakdown.append(
-                {
-                    "rule_group_id": str(item.rule_group_id) if item.rule_group_id else None,
-                    "rule_outcome_id": str(item.rule_outcome_id) if item.rule_outcome_id else None,
-                    "applied": item.applied,
-                    "score_delta": str(score_delta),
-                    "message": item.explanation_message,
-                    "is_blocking": is_blocking,
-                    "condition_checks": payload.get("condition_checks", []),
-                }
+                self._serialize_breakdown_item(item, score_delta, payload, is_blocking)
+            )
+            self._append_assessment_signals(
+                item=item,
+                score_delta=score_delta,
+                is_blocking=is_blocking,
+                gaps_criticos=gaps_criticos,
+                fatores_positivos=fatores_positivos,
             )
 
-            if not item.applied:
-                continue
-            if is_blocking or score_delta < 0:
-                gaps_criticos.append(item.explanation_message)
-            if score_delta > 0:
-                fatores_positivos.append(item.explanation_message)
-
         score_final = Decimal(str(result.total_score)).quantize(Decimal("0.01"))
-        faixa = "baixo"
-        if score_final >= Decimal("70.00"):
-            faixa = "alto"
-        elif score_final >= Decimal("40.00"):
-            faixa = "medio"
+        faixa = self._score_band(score_final)
 
         return {
             "roadmap_schema_version": self.settings.roadmap_schema_version,

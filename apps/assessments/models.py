@@ -20,6 +20,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base
 from apps.common.models import CreatedAtMixin, UUIDPrimaryKeyMixin
 
+ON_DELETE_SET_NULL = "SET NULL"
+
 
 class AssessmentStatus(enum.StrEnum):
     pending = "pending"
@@ -121,15 +123,15 @@ class AssessmentResultItem(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         index=True,
     )
     rule_group_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("rule_groups.id", ondelete="SET NULL"),
+        ForeignKey("rule_groups.id", ondelete=ON_DELETE_SET_NULL),
         index=True,
     )
     rule_condition_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("rule_conditions.id", ondelete="SET NULL"),
+        ForeignKey("rule_conditions.id", ondelete=ON_DELETE_SET_NULL),
         index=True,
     )
     rule_outcome_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("rule_outcomes.id", ondelete="SET NULL"),
+        ForeignKey("rule_outcomes.id", ondelete=ON_DELETE_SET_NULL),
         index=True,
     )
     applied: Mapped[bool] = mapped_column(Boolean, nullable=False)

@@ -16,7 +16,7 @@ export function trackEvent(
   event: TrackingEventName,
   payload: Record<string, unknown> = {}
 ): void {
-  if (typeof globalThis.window === "undefined") {
+  if (globalThis.window === undefined) {
     return;
   }
 

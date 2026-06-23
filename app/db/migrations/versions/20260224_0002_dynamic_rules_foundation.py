@@ -59,6 +59,8 @@ SET_NULL = "SET NULL"
 USERS_ID = "users.id"
 PROGRAM_VERSIONS_ID = "program_versions.id"
 RULE_GROUPS_ID = "rule_groups.id"
+RULE_CONDITIONS_ID = "rule_conditions.id"
+RULE_OUTCOMES_ID = "rule_outcomes.id"
 
 
 def upgrade() -> None:
@@ -193,7 +195,7 @@ def upgrade() -> None:
             nullable=False,
             server_default=NOW,
         ),
-        sa.ForeignKeyConstraint(["rule_group_id"], ["rule_groups.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["rule_group_id"], [RULE_GROUPS_ID], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -224,7 +226,7 @@ def upgrade() -> None:
             nullable=False,
             server_default=NOW,
         ),
-        sa.ForeignKeyConstraint(["rule_group_id"], ["rule_groups.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["rule_group_id"], [RULE_GROUPS_ID], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -423,9 +425,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["assessment_result_id"], ["assessment_results.id"], ondelete="CASCADE"
         ),
-        sa.ForeignKeyConstraint(["rule_condition_id"], ["rule_conditions.id"], ondelete=SET_NULL),
+        sa.ForeignKeyConstraint(["rule_condition_id"], [RULE_CONDITIONS_ID], ondelete=SET_NULL),
         sa.ForeignKeyConstraint(["rule_group_id"], [RULE_GROUPS_ID], ondelete=SET_NULL),
-        sa.ForeignKeyConstraint(["rule_outcome_id"], ["rule_outcomes.id"], ondelete=SET_NULL),
+        sa.ForeignKeyConstraint(["rule_outcome_id"], [RULE_OUTCOMES_ID], ondelete=SET_NULL),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

@@ -1,8 +1,8 @@
 [run]
-source =
-    app
-    apps
+source = .
 omit =
+    tests/*
+    scripts/*
     app/cli.py
     app/api/v1/countries_catalog.py
     app/api/v1/immigration_rules.py

@@ -23,19 +23,21 @@ export default function PricingPage(): JSX.Element {
       return;
     }
 
-    if (typeof window === "undefined") {
+    if (typeof globalThis.window === "undefined") {
       return;
     }
+
+    const origin = globalThis.window.location.origin;
 
     checkoutMutation.mutate(
       {
         planCode: "pro",
-        successUrl: `${window.location.origin}/settings/subscription?success=1`,
-        cancelUrl: `${window.location.origin}/pricing?canceled=1`
+        successUrl: `${origin}/settings/subscription?success=1`,
+        cancelUrl: `${origin}/pricing?canceled=1`
       },
       {
         onSuccess: (session) => {
-          window.location.href = session.checkout_url;
+          globalThis.window.location.href = session.checkout_url;
         }
       }
     );

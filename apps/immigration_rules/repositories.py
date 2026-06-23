@@ -27,7 +27,7 @@ class ImmigrationRulesRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def create_country(self, payload: dict) -> Country:
+    def create_country(self, payload: dict) -> Country:
         country = Country(**payload)
         self.db.add(country)
         return country
@@ -57,7 +57,7 @@ class ImmigrationRulesRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def create_program(self, payload: dict) -> ImmigrationProgram:
+    def create_program(self, payload: dict) -> ImmigrationProgram:
         program = ImmigrationProgram(**payload)
         self.db.add(program)
         return program
@@ -97,7 +97,7 @@ class ImmigrationRulesRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def create_program_version(self, payload: dict) -> ProgramVersion:
+    def create_program_version(self, payload: dict) -> ProgramVersion:
         program_version = ProgramVersion(**payload)
         self.db.add(program_version)
         return program_version
@@ -172,7 +172,7 @@ class ImmigrationRulesRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def create_rule_group(self, payload: dict) -> RuleGroup:
+    def create_rule_group(self, payload: dict) -> RuleGroup:
         rule_group = RuleGroup(**payload)
         self.db.add(rule_group)
         return rule_group
@@ -190,7 +190,7 @@ class ImmigrationRulesRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def create_rule_condition(self, payload: dict) -> RuleCondition:
+    def create_rule_condition(self, payload: dict) -> RuleCondition:
         condition = RuleCondition(**payload)
         self.db.add(condition)
         return condition
@@ -210,7 +210,7 @@ class ImmigrationRulesRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def create_rule_outcome(self, payload: dict) -> RuleOutcome:
+    def create_rule_outcome(self, payload: dict) -> RuleOutcome:
         outcome = RuleOutcome(**payload)
         self.db.add(outcome)
         return outcome

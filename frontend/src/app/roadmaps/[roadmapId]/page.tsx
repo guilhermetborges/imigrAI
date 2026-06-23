@@ -19,7 +19,7 @@ interface RoadmapPageProps {
   };
 }
 
-export default function RoadmapPage({ params }: RoadmapPageProps): JSX.Element {
+export default function RoadmapPage({ params }: Readonly<RoadmapPageProps>): JSX.Element {
   const router = useRouter();
   const roadmapId = params.roadmapId;
 

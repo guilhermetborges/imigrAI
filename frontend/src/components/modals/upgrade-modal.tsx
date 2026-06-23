@@ -14,7 +14,7 @@ export function UpgradeModal({
   description = "Esse recurso exige plano Pro. Faca upgrade para continuar.",
   onClose,
   onUpgrade
-}: UpgradeModalProps): JSX.Element | null {
+}: Readonly<UpgradeModalProps>): JSX.Element | null {
   if (!isOpen) {
     return null;
   }

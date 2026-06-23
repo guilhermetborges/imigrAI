@@ -15,7 +15,7 @@ interface RoadmapChecklistProps {
   steps: RoadmapStepRead[];
 }
 
-export function RoadmapChecklist({ steps }: RoadmapChecklistProps): JSX.Element {
+export function RoadmapChecklist({ steps }: Readonly<RoadmapChecklistProps>): JSX.Element {
   return (
     <Card>
       <h2 className="font-serif text-2xl">Checklist de execucao</h2>

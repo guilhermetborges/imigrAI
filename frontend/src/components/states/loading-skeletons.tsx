@@ -15,7 +15,7 @@ interface ListSkeletonProps {
   rows?: number;
 }
 
-export function ListSkeleton({ rows = 4 }: ListSkeletonProps): JSX.Element {
+export function ListSkeleton({ rows = 4 }: Readonly<ListSkeletonProps>): JSX.Element {
   return (
     <div className="space-y-3">
       {Array.from({ length: rows }).map((_, index) => (

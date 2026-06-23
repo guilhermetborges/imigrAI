@@ -4,7 +4,7 @@ interface GapsListProps {
   gaps: string[];
 }
 
-export function GapsList({ gaps }: GapsListProps): JSX.Element {
+export function GapsList({ gaps }: Readonly<GapsListProps>): JSX.Element {
   return (
     <Card>
       <h3 className="font-semibold">Gaps criticos</h3>

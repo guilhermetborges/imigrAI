@@ -7,7 +7,7 @@ interface ScoreCardProps {
   completedAt: string | null;
 }
 
-export function ScoreCard({ score, faixa, completedAt }: ScoreCardProps): JSX.Element {
+export function ScoreCard({ score, faixa, completedAt }: Readonly<ScoreCardProps>): JSX.Element {
   const cappedScore = Math.max(0, Math.min(100, score));
 
   return (

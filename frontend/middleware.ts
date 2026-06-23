@@ -15,8 +15,8 @@ export function middleware(request: NextRequest): NextResponse {
   const { pathname, search } = request.nextUrl;
   const token = request.cookies.get("imigrai_access_token")?.value;
 
-  const isPrivate = PRIVATE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-  const isGuestOnly = GUEST_ONLY_ROUTES.some((route) => pathname === route);
+  const isPrivate = PRIVATE_PREFIXES.some(pathname.startsWith.bind(pathname));
+  const isGuestOnly = GUEST_ONLY_ROUTES.includes(pathname);
 
   if (isPrivate && !token) {
     const loginUrl = new URL("/login", request.url);

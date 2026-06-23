@@ -12,7 +12,7 @@ export function PageState({
   description,
   actionLabel,
   onAction
-}: PageStateProps): JSX.Element {
+}: Readonly<PageStateProps>): JSX.Element {
   return (
     <section className="mx-auto flex max-w-2xl flex-col items-center rounded-2xl border border-dashed border-ink/20 bg-white/70 p-8 text-center">
       <h2 className="text-2xl font-semibold">{title}</h2>

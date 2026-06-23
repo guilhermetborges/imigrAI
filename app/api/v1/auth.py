@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,30 +30,28 @@ auth_rate_limiter = rate_limit(
     window_seconds=settings.auth_rate_limit_window_seconds,
     identity="user_or_ip",
 )
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-@router.post(
-    "/register", response_model=TokenPairResponse, dependencies=[Depends(auth_rate_limiter)]
-)
+@router.post("/register", dependencies=[Depends(auth_rate_limiter)])
 async def register(
     payload: RegisterRequest,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession,
 ) -> TokenPairResponse:
     service = AuthService(db)
     _, tokens = await service.register(email=payload.email, password=payload.password)
     return TokenPairResponse(**tokens)
 
 
-@router.post("/login", response_model=TokenPairResponse, dependencies=[Depends(auth_rate_limiter)])
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> TokenPairResponse:
+@router.post("/login", dependencies=[Depends(auth_rate_limiter)])
+async def login(payload: LoginRequest, db: DbSession) -> TokenPairResponse:
     service = AuthService(db)
     tokens = await service.login(email=payload.email, password=payload.password)
     return TokenPairResponse(**tokens)
 
 
-@router.post(
-    "/refresh", response_model=TokenPairResponse, dependencies=[Depends(auth_rate_limiter)]
-)
+@router.post("/refresh", dependencies=[Depends(auth_rate_limiter)])
 async def refresh(payload: RefreshRequest) -> TokenPairResponse:
     token_payload = decode_token(payload.refresh_token, expected_type="refresh")
     subject = token_payload["sub"]
@@ -61,6 +61,6 @@ async def refresh(payload: RefreshRequest) -> TokenPairResponse:
     )
 
 
-@router.get("/me", response_model=UserResponse)
-async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
+@router.get("/me")
+async def me(current_user: CurrentUser) -> UserResponse:
     return UserResponse.model_validate(current_user)

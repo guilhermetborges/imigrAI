@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,10 +14,11 @@ from apps.immigration_rules.schemas import (
 )
 
 router = APIRouter(prefix="/countries", tags=["countries"])
+DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
-@router.get("", response_model=list[CountryCatalogRead])
-async def list_country_catalog(db: AsyncSession = Depends(get_db)) -> list[CountryCatalogRead]:
+@router.get("")
+async def list_country_catalog(db: DbSession) -> list[CountryCatalogRead]:
     repo = ImmigrationRulesRepository(db)
     countries = await repo.list_countries_for_catalog()
 
@@ -37,10 +40,10 @@ async def list_country_catalog(db: AsyncSession = Depends(get_db)) -> list[Count
     return payload
 
 
-@router.get("/{country_code}/programs", response_model=CountryProgramsCatalogRead)
+@router.get("/{country_code}/programs")
 async def list_country_programs(
     country_code: str,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession,
 ) -> CountryProgramsCatalogRead:
     repo = ImmigrationRulesRepository(db)
     country = await repo.get_country_by_code(country_code)

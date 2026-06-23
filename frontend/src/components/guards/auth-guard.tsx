@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { PageState } from "@/components/states/page-state";
 import { useAuth } from "@/hooks/use-auth";
 
-export function AuthGuard({ children }: { children: React.ReactNode }): JSX.Element {
+export function AuthGuard({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {
   const { status } = useAuth();
   const pathname = usePathname();
   const router = useRouter();

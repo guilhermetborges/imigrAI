@@ -192,6 +192,12 @@ export default function OnboardingPage(): JSX.Element {
     );
   };
 
+  const hasNoPrograms = programsQuery.data?.length === 0;
+  const hasPrograms = (programsQuery.data?.length ?? 0) > 0;
+  const submitLabel = createAssessmentMutation.isPending
+    ? "Enviando avaliacao..."
+    : "Finalizar e calcular score";
+
   return (
     <AuthGuard>
       <PrivateShell>
@@ -227,7 +233,7 @@ export default function OnboardingPage(): JSX.Element {
             </div>
           ) : null}
 
-          {programsQuery.data && programsQuery.data.length === 0 ? (
+          {hasNoPrograms ? (
             <div className="mt-8">
               <PageState
                 title="Nenhum programa ativo"
@@ -236,7 +242,7 @@ export default function OnboardingPage(): JSX.Element {
             </div>
           ) : null}
 
-          {programsQuery.data && programsQuery.data.length > 0 ? (
+          {hasPrograms ? (
             <form className="mt-8 space-y-5" onSubmit={handleSubmit(submit)}>
               {step === 0 ? (
                 <div className="grid gap-4 md:grid-cols-2">
@@ -354,9 +360,7 @@ export default function OnboardingPage(): JSX.Element {
                   </Button>
                 ) : (
                   <Button type="submit" disabled={createAssessmentMutation.isPending}>
-                    {createAssessmentMutation.isPending
-                      ? "Enviando avaliacao..."
-                      : "Finalizar e calcular score"}
+                    {submitLabel}
                   </Button>
                 )}
               </div>

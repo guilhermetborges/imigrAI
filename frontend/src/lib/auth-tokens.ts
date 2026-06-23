@@ -5,21 +5,21 @@ const REFRESH_KEY = "imigrai_refresh_token";
 const ACCESS_COOKIE = "imigrai_access_token";
 
 function isBrowser(): boolean {
-  return typeof window !== "undefined";
+  return typeof globalThis.window !== "undefined";
 }
 
 export function getAccessToken(): string | null {
   if (!isBrowser()) {
     return null;
   }
-  return window.localStorage.getItem(ACCESS_KEY);
+  return globalThis.window.localStorage.getItem(ACCESS_KEY);
 }
 
 export function getRefreshToken(): string | null {
   if (!isBrowser()) {
     return null;
   }
-  return window.localStorage.getItem(REFRESH_KEY);
+  return globalThis.window.localStorage.getItem(REFRESH_KEY);
 }
 
 function setAccessCookie(token: string): void {
@@ -43,8 +43,8 @@ export function setAuthTokens(tokens: TokenPairResponse): void {
     return;
   }
 
-  window.localStorage.setItem(ACCESS_KEY, tokens.access_token);
-  window.localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
+  globalThis.window.localStorage.setItem(ACCESS_KEY, tokens.access_token);
+  globalThis.window.localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
   setAccessCookie(tokens.access_token);
 }
 
@@ -53,7 +53,7 @@ export function clearAuthTokens(): void {
     return;
   }
 
-  window.localStorage.removeItem(ACCESS_KEY);
-  window.localStorage.removeItem(REFRESH_KEY);
+  globalThis.window.localStorage.removeItem(ACCESS_KEY);
+  globalThis.window.localStorage.removeItem(REFRESH_KEY);
   clearAccessCookie();
 }

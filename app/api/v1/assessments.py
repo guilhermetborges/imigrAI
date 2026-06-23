@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Request, status
@@ -24,20 +25,22 @@ creation_rate_limiter = rate_limit(
     window_seconds=settings.creation_rate_limit_window_seconds,
     identity="user_or_ip",
 )
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
+TraceIdHeader = Annotated[str | None, Header(default=None)]
 
 
 @router.post(
     "",
-    response_model=AssessmentQueuedRead,
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(creation_rate_limiter)],
 )
 async def create_assessment(
     payload: AssessmentCreate,
     request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    x_trace_id: str | None = Header(default=None),
+    db: DbSession,
+    current_user: CurrentUser,
+    x_trace_id: TraceIdHeader,
 ) -> AssessmentQueuedRead:
     service = AssessmentsService(db)
     trace_id = x_trace_id or getattr(request.state, "trace_id", None)
@@ -48,21 +51,21 @@ async def create_assessment(
     )
 
 
-@router.get("/{assessment_id}/status", response_model=AssessmentStatusRead)
+@router.get("/{assessment_id}/status")
 async def get_assessment_status(
     assessment_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: DbSession,
+    current_user: CurrentUser,
 ) -> AssessmentStatusRead:
     service = AssessmentsService(db)
     return await service.get_assessment_status(assessment_id=assessment_id, user_id=current_user.id)
 
 
-@router.get("/{assessment_id}/breakdown", response_model=AssessmentBreakdownRead)
+@router.get("/{assessment_id}/breakdown")
 async def get_assessment_breakdown(
     assessment_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: DbSession,
+    current_user: CurrentUser,
 ) -> AssessmentBreakdownRead:
     service = AssessmentsService(db)
     return await service.get_assessment_breakdown(

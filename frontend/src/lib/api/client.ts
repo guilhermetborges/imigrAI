@@ -35,7 +35,7 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as RetriableRequest | undefined;
 
     if (!originalRequest) {
-      return Promise.reject(error);
+      throw error;
     }
 
     const status = error.response?.status;
@@ -45,13 +45,13 @@ apiClient.interceptors.response.use(
       originalRequest.url?.includes("/auth/refresh");
 
     if (status !== 401 || originalRequest._retry || isAuthRoute) {
-      return Promise.reject(error);
+      throw error;
     }
 
     const refreshToken = getRefreshToken();
     if (!refreshToken) {
       clearAuthTokens();
-      return Promise.reject(error);
+      throw error;
     }
 
     originalRequest._retry = true;
@@ -70,7 +70,7 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       clearAuthTokens();
-      return Promise.reject(refreshError);
+      throw refreshError;
     }
   }
 );

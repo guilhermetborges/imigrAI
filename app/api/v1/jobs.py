@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -10,13 +11,15 @@ from apps.common.schemas import JobRead
 from apps.common.services import JobsService
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-@router.get("/{job_id}", response_model=JobRead)
+@router.get("/{job_id}")
 async def get_job_status(
     job_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: DbSession,
+    current_user: CurrentUser,
 ) -> JobRead:
     service = JobsService(db)
     return await service.get_job_status(job_id=job_id, user=current_user)

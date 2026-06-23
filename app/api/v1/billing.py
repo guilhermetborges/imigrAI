@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Header, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,18 +19,20 @@ creation_rate_limiter = rate_limit(
     window_seconds=settings.creation_rate_limit_window_seconds,
     identity="user_or_ip",
 )
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
+StripeSignatureHeader = Annotated[str | None, Header(default=None, alias="Stripe-Signature")]
 
 
 @router.post(
     "/checkout-session",
-    response_model=CheckoutSessionRead,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(creation_rate_limiter)],
 )
 async def create_checkout_session(
     payload: CheckoutSessionCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: DbSession,
+    current_user: CurrentUser,
 ) -> CheckoutSessionRead:
     service = BillingService(db)
     return await service.create_checkout_session(
@@ -38,11 +42,11 @@ async def create_checkout_session(
     )
 
 
-@router.post("/webhook/stripe", response_model=StripeWebhookAck)
+@router.post("/webhook/stripe")
 async def stripe_webhook(
     request: Request,
-    db: AsyncSession = Depends(get_db),
-    stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
+    db: DbSession,
+    stripe_signature: StripeSignatureHeader,
 ) -> StripeWebhookAck:
     payload = await request.body()
     service = BillingService(db)

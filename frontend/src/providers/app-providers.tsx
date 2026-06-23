@@ -11,20 +11,26 @@ import { useState } from "react";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { AuthProvider } from "@/providers/auth-provider";
 
-export function AppProviders({ children }: { children: React.ReactNode }): JSX.Element {
+function reportQueryError(scope: string, error: unknown): void {
+  if (process.env.NODE_ENV !== "production") {
+    console.error(`${scope}:`, getApiErrorMessage(error));
+  }
+}
+
+export function AppProviders({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {
   const [queryClient] = useState(
     () =>
-      new QueryClient({
-        queryCache: new QueryCache({
-          onError: (error) => {
-            console.error("React Query error:", getApiErrorMessage(error));
-          }
-        }),
-        mutationCache: new MutationCache({
-          onError: (error) => {
-            console.error("React Query mutation error:", getApiErrorMessage(error));
-          }
-        }),
+        new QueryClient({
+          queryCache: new QueryCache({
+            onError: (error) => {
+              reportQueryError("React Query error", error);
+            }
+          }),
+          mutationCache: new MutationCache({
+            onError: (error) => {
+              reportQueryError("React Query mutation error", error);
+            }
+          }),
         defaultOptions: {
           queries: {
             staleTime: 20_000,

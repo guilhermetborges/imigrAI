@@ -25,9 +25,15 @@ interface ResultsPageProps {
   };
 }
 
-const terminalStatuses = ["completed", "failed", "canceled"];
+const terminalStatuses = new Set(["completed", "failed", "canceled"]);
 
-export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
+function getRoadmapDescription(hasRoadmapAccess: boolean): string {
+  return hasRoadmapAccess
+    ? "Voce tem acesso Pro para gerar roadmap contextual deste score."
+    : "Roadmap completo disponivel no plano Pro.";
+}
+
+export default function ResultsPage({ params }: Readonly<ResultsPageProps>): JSX.Element {
   const router = useRouter();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const assessmentId = params.assessmentId;
@@ -137,7 +143,7 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
 
   const status = assessmentStatusQuery.data?.status;
 
-  if (status && !terminalStatuses.includes(status)) {
+  if (status && !terminalStatuses.has(status)) {
     return (
       <AuthGuard>
         <PrivateShell>
@@ -214,6 +220,12 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
 
   const score = Math.max(0, Math.min(100, toNumber(breakdownQuery.data.score_final)));
 
+  const roadmapCtaLabel = hasRoadmapAccess
+    ? createRoadmapMutation.isPending
+      ? "Gerando roadmap..."
+      : "Gerar roadmap Pro"
+    : "Fazer upgrade para gerar roadmap";
+
   return (
     <AuthGuard>
       <PrivateShell>
@@ -248,9 +260,7 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
               <Card>
                 <h3 className="font-semibold">Proxima acao</h3>
                 <p className="mt-2 text-sm text-muted">
-                  {hasRoadmapAccess
-                    ? "Voce tem acesso Pro para gerar roadmap contextual deste score."
-                    : "Roadmap completo disponivel no plano Pro."}
+                  {getRoadmapDescription(hasRoadmapAccess)}
                 </p>
 
                 <Button
@@ -260,11 +270,7 @@ export default function ResultsPage({ params }: ResultsPageProps): JSX.Element {
                   disabled={createRoadmapMutation.isPending}
                   onClick={handleRoadmapAction}
                 >
-                  {hasRoadmapAccess
-                    ? createRoadmapMutation.isPending
-                      ? "Gerando roadmap..."
-                      : "Gerar roadmap Pro"
-                    : "Fazer upgrade para gerar roadmap"}
+                  {roadmapCtaLabel}
                 </Button>
 
                 {createRoadmapMutation.isError ? (

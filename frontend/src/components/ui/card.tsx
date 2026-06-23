@@ -6,7 +6,7 @@ interface CardProps extends HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
 }
 
-export function Card({ children, className, ...props }: CardProps): JSX.Element {
+export function Card({ children, className, ...props }: Readonly<CardProps>): JSX.Element {
   return (
     <article
       className={cn(

@@ -2,7 +2,7 @@ interface ProgressProps {
   value: number;
 }
 
-export function Progress({ value }: ProgressProps): JSX.Element {
+export function Progress({ value }: Readonly<ProgressProps>): JSX.Element {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-ink/10">
       <div

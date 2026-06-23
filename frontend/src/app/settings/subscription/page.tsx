@@ -20,19 +20,21 @@ export default function SubscriptionSettingsPage(): JSX.Element {
   const canceled = searchParams.get("canceled") === "1";
 
   const handleUpgrade = (): void => {
-    if (typeof window === "undefined") {
+    if (typeof globalThis.window === "undefined") {
       return;
     }
+
+    const origin = globalThis.window.location.origin;
 
     checkoutMutation.mutate(
       {
         planCode: "pro",
-        successUrl: `${window.location.origin}/settings/subscription?success=1`,
-        cancelUrl: `${window.location.origin}/settings/subscription?canceled=1`
+        successUrl: `${origin}/settings/subscription?success=1`,
+        cancelUrl: `${origin}/settings/subscription?canceled=1`
       },
       {
         onSuccess: (checkout) => {
-          window.location.href = checkout.checkout_url;
+          globalThis.window.location.href = checkout.checkout_url;
         }
       }
     );

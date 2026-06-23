@@ -19,7 +19,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }): JSX.Element {
+export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<UserResponse | null>(null);
 

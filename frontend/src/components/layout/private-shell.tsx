@@ -12,7 +12,7 @@ const links = [
   { href: "/settings/subscription", label: "Assinatura" }
 ];
 
-export function PrivateShell({ children }: { children: React.ReactNode }): JSX.Element {
+export function PrivateShell({ children }: Readonly<{ children: React.ReactNode }>): JSX.Element {
   const pathname = usePathname();
 
   return (

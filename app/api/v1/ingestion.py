@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -17,13 +18,14 @@ from apps.ingestion.services import IngestionPipelineService, SourceRegistryServ
 from apps.ingestion.tasks import ingest_source_task
 
 router = APIRouter(prefix="/ingestion", tags=["ingestion"])
+DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
 @router.post(
     "/source-registry/seed",
     dependencies=[Depends(require_internal_token)],
 )
-async def seed_source_registry(db: AsyncSession = Depends(get_db)) -> dict:
+async def seed_source_registry(db: DbSession) -> dict:
     service = SourceRegistryService(db)
     seeded = await service.seed_default_sources()
     return {"seeded": seeded}
@@ -31,12 +33,11 @@ async def seed_source_registry(db: AsyncSession = Depends(get_db)) -> dict:
 
 @router.get(
     "/source-registry",
-    response_model=list[SourceRegistryRead],
     dependencies=[Depends(require_internal_token)],
 )
 async def list_source_registry(
+    db: DbSession,
     country_code: str | None = None,
-    db: AsyncSession = Depends(get_db),
 ) -> list[SourceRegistryRead]:
     service = SourceRegistryService(db)
     return await service.list_active_sources(country_code=country_code)
@@ -44,13 +45,12 @@ async def list_source_registry(
 
 @router.post(
     "/reprocess-source",
-    response_model=IngestionDispatchResponse,
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_internal_token)],
 )
 async def reprocess_source(
     payload: ReprocessSourceRequest,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession,
 ) -> IngestionDispatchResponse:
     service = IngestionPipelineService(db)
     run_id, run_item_ids = await service.create_run(
@@ -95,10 +95,9 @@ async def reprocess_source(
 
 @router.get(
     "/runs/{run_id}",
-    response_model=IngestionRunRead,
     dependencies=[Depends(require_internal_token)],
 )
-async def get_ingestion_run(run_id: UUID, db: AsyncSession = Depends(get_db)) -> IngestionRunRead:
+async def get_ingestion_run(run_id: UUID, db: DbSession) -> IngestionRunRead:
     repo = IngestionRepository(db)
     run = await repo.get_run(run_id)
     if run is None:

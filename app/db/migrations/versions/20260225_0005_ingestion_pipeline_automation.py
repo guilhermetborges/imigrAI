@@ -240,7 +240,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(
             ["ingestion_run_item_id"], ["ingestion_run_item.id"], ondelete="CASCADE"

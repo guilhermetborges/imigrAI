@@ -462,43 +462,48 @@ class ScoreEngine:
             return actual_value != expected_value
 
         if operator in {"gt", "gte", "lt", "lte"}:
-            if actual_value is None:
-                return False
-            actual_num = float(actual_value)
-            expected_num = float(expected_value)
-            if operator == "gt":
-                return actual_num > expected_num
-            if operator == "gte":
-                return actual_num >= expected_num
-            if operator == "lt":
-                return actual_num < expected_num
-            return actual_num <= expected_num
+            return self._compare_numeric(operator, actual_value, expected_value)
 
         if operator == "between":
-            if actual_value is None:
-                return False
-            if not isinstance(expected_value, list) or len(expected_value) != 2:
-                raise ScoreEngineInputError("between operator expects list with [min, max]")
-            lower = float(expected_value[0])
-            upper = float(expected_value[1])
-            actual_num = float(actual_value)
-            return lower <= actual_num <= upper
+            return self._is_between(actual_value, expected_value)
 
         if operator == "in":
-            if not isinstance(expected_value, list):
-                raise ScoreEngineInputError("in operator expects list")
-            if isinstance(actual_value, list):
-                return any(item in expected_value for item in actual_value)
-            return actual_value in expected_value
+            return self._is_in(actual_value, expected_value)
 
         if operator == "not_in":
-            if not isinstance(expected_value, list):
-                raise ScoreEngineInputError("not_in operator expects list")
-            if isinstance(actual_value, list):
-                return all(item not in expected_value for item in actual_value)
-            return actual_value not in expected_value
+            return not self._is_in(actual_value, expected_value)
 
         raise ScoreEngineInputError(f"Unsupported operator: {operator}")
+
+    def _compare_numeric(self, operator: str, actual_value: Any, expected_value: Any) -> bool:
+        if actual_value is None:
+            return False
+        actual_num = float(actual_value)
+        expected_num = float(expected_value)
+        comparisons = {
+            "gt": actual_num > expected_num,
+            "gte": actual_num >= expected_num,
+            "lt": actual_num < expected_num,
+            "lte": actual_num <= expected_num,
+        }
+        return comparisons[operator]
+
+    def _is_between(self, actual_value: Any, expected_value: Any) -> bool:
+        if actual_value is None:
+            return False
+        if not isinstance(expected_value, list) or len(expected_value) != 2:
+            raise ScoreEngineInputError("between operator expects list with [min, max]")
+        lower = float(expected_value[0])
+        upper = float(expected_value[1])
+        actual_num = float(actual_value)
+        return lower <= actual_num <= upper
+
+    def _is_in(self, actual_value: Any, expected_value: Any) -> bool:
+        if not isinstance(expected_value, list):
+            raise ScoreEngineInputError("in operator expects list")
+        if isinstance(actual_value, list):
+            return any(item in expected_value for item in actual_value)
+        return actual_value in expected_value
 
     def _quantize(self, value: Decimal) -> Decimal:
         return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

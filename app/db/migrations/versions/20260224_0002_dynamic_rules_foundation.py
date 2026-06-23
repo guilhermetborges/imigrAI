@@ -53,6 +53,13 @@ subscription_status = sa.Enum(
 )
 entitlement_window = sa.Enum("daily", "monthly", "lifetime", name="entitlement_window")
 
+NOW = sa.text("now()")
+EMPTY_JSONB = sa.text("'{}'::jsonb")
+SET_NULL = "SET NULL"
+USERS_ID = "users.id"
+PROGRAM_VERSIONS_ID = "program_versions.id"
+RULE_GROUPS_ID = "rule_groups.id"
+
 
 def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS btree_gist")
@@ -67,7 +74,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -85,7 +92,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(["country_id"], ["countries.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
@@ -115,7 +122,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.CheckConstraint(
             "effective_to IS NULL OR effective_to > effective_from",
@@ -155,7 +162,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(
             ["program_version_id"], ["program_versions.id"], ondelete="CASCADE"
@@ -184,7 +191,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(["rule_group_id"], ["rule_groups.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
@@ -237,17 +244,15 @@ def upgrade() -> None:
             "metadata_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
-        sa.ForeignKeyConstraint(
-            ["program_version_id"], ["program_versions.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["program_version_id"], [PROGRAM_VERSIONS_ID], ondelete=SET_NULL),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -267,14 +272,14 @@ def upgrade() -> None:
             "structured_data_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column("confidence_score", sa.Numeric(precision=5, scale=4), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(
             ["source_document_id"], ["source_documents.id"], ondelete="CASCADE"
@@ -305,7 +310,7 @@ def upgrade() -> None:
             nullable=False,
             server_default=sa.text("now()"),
         ),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], [USERS_ID], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "user_id", "snapshot_version", name="uq_profile_snapshots_user_version"
@@ -348,13 +353,13 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(
             ["profile_snapshot_id"], ["user_profile_snapshots.id"], ondelete="RESTRICT"
         ),
         sa.ForeignKeyConstraint(["program_id"], ["immigration_programs.id"], ondelete="RESTRICT"),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], [USERS_ID], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "user_id", "idempotency_key", name="uq_assessments_user_idempotency_key"
@@ -380,12 +385,10 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(["assessment_id"], ["assessments.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["program_version_id"], ["program_versions.id"], ondelete="RESTRICT"
-        ),
+        sa.ForeignKeyConstraint(["program_version_id"], [PROGRAM_VERSIONS_ID], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("assessment_id", name="uq_assessment_results_assessment_id"),
     )
@@ -409,20 +412,20 @@ def upgrade() -> None:
             "audit_payload_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(
             ["assessment_result_id"], ["assessment_results.id"], ondelete="CASCADE"
         ),
-        sa.ForeignKeyConstraint(["rule_condition_id"], ["rule_conditions.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["rule_group_id"], ["rule_groups.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["rule_outcome_id"], ["rule_outcomes.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["rule_condition_id"], ["rule_conditions.id"], ondelete=SET_NULL),
+        sa.ForeignKeyConstraint(["rule_group_id"], [RULE_GROUPS_ID], ondelete=SET_NULL),
+        sa.ForeignKeyConstraint(["rule_outcome_id"], ["rule_outcomes.id"], ondelete=SET_NULL),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -443,12 +446,12 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(
             ["assessment_result_id"], ["assessment_results.id"], ondelete="RESTRICT"
         ),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], [USERS_ID], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_roadmaps_user_created_at", "roadmaps", ["user_id", "created_at"])
@@ -464,7 +467,7 @@ def upgrade() -> None:
             "related_gap_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column("is_required", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("eta_weeks", sa.Integer(), nullable=True),
@@ -472,7 +475,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(["roadmap_id"], ["roadmaps.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
@@ -493,7 +496,7 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -516,7 +519,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
         ),
         sa.ForeignKeyConstraint(["plan_id"], ["plans.id"], ondelete="RESTRICT"),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], [USERS_ID], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_subscriptions_user_status", "subscriptions", ["user_id", "status"])
@@ -537,11 +540,11 @@ def upgrade() -> None:
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
-        sa.ForeignKeyConstraint(["plan_id"], ["plans.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["subscription_id"], ["subscriptions.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["plan_id"], ["plans.id"], ondelete=SET_NULL),
+        sa.ForeignKeyConstraint(["subscription_id"], ["subscriptions.id"], ondelete=SET_NULL),
+        sa.ForeignKeyConstraint(["user_id"], [USERS_ID], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "user_id",

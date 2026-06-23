@@ -35,6 +35,9 @@ ingestion_run_item_status = sa.Enum(
 )
 ingestion_parser_mode = sa.Enum("deterministic", "llm_fallback", name="ingestion_parser_mode")
 
+NOW = sa.text("now()")
+EMPTY_JSONB = sa.text("'{}'::jsonb")
+
 
 def upgrade() -> None:
 
@@ -69,13 +72,13 @@ def upgrade() -> None:
             "metadata_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("source_key", name="uq_source_registry_source_key"),
@@ -104,13 +107,13 @@ def upgrade() -> None:
             "metadata_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -144,19 +147,19 @@ def upgrade() -> None:
             "diff_summary_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column(
             "metadata_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(["ingestion_run_id"], ["ingestion_run.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["source_id"], ["source_registry.id"], ondelete="RESTRICT"),
@@ -200,13 +203,13 @@ def upgrade() -> None:
             "metadata_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=NOW,
         ),
         sa.ForeignKeyConstraint(
             ["ingestion_run_item_id"], ["ingestion_run_item.id"], ondelete="CASCADE"
@@ -231,7 +234,7 @@ def upgrade() -> None:
             "metadata_json",
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=EMPTY_JSONB,
         ),
         sa.Column(
             "created_at",

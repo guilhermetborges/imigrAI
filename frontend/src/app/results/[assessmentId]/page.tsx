@@ -33,6 +33,37 @@ function getRoadmapDescription(hasRoadmapAccess: boolean): string {
     : "Roadmap completo disponivel no plano Pro.";
 }
 
+function renderLoadingShell(children: JSX.Element): JSX.Element {
+  return (
+    <AuthGuard>
+      <PrivateShell>
+        {children}
+      </PrivateShell>
+    </AuthGuard>
+  );
+}
+
+function renderPageState(title: string, description: string, actionLabel?: string, onAction?: () => void): JSX.Element {
+  return renderLoadingShell(
+    <PageState title={title} description={description} actionLabel={actionLabel} onAction={onAction} />
+  );
+}
+
+function renderBreakdownLoading(): JSX.Element {
+  return renderLoadingShell(
+    <section className="space-y-4">
+      <CardSkeleton />
+      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+        <ListSkeleton rows={5} />
+        <div className="space-y-4">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function ResultsPage({ params }: Readonly<ResultsPageProps>): JSX.Element {
   const router = useRouter();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -102,124 +133,66 @@ export default function ResultsPage({ params }: Readonly<ResultsPageProps>): JSX
   };
 
   if (assessmentStatusQuery.isLoading) {
-    return (
-      <AuthGuard>
-        <PrivateShell>
-          <CardSkeleton />
-        </PrivateShell>
-      </AuthGuard>
-    );
+    return renderLoadingShell(<CardSkeleton />);
   }
 
   if (assessmentStatusQuery.isError) {
-    return (
-      <AuthGuard>
-        <PrivateShell>
-          <PageState
-            title="Falha ao carregar status"
-            description={getApiErrorMessage(assessmentStatusQuery.error)}
-            actionLabel="Tentar novamente"
-            onAction={() => assessmentStatusQuery.refetch()}
-          />
-        </PrivateShell>
-      </AuthGuard>
+    return renderPageState(
+      "Falha ao carregar status",
+      getApiErrorMessage(assessmentStatusQuery.error),
+      "Tentar novamente",
+      () => assessmentStatusQuery.refetch()
     );
   }
 
   if (assessmentStatusQuery.timedOut) {
-    return (
-      <AuthGuard>
-        <PrivateShell>
-          <PageState
-            title="Processamento demorando mais que o esperado"
-            description="Ainda estamos processando seu score. Voce pode tentar novamente agora ou voltar ao dashboard."
-            actionLabel="Tentar novamente"
-            onAction={() => assessmentStatusQuery.refetch()}
-          />
-        </PrivateShell>
-      </AuthGuard>
+    return renderPageState(
+      "Processamento demorando mais que o esperado",
+      "Ainda estamos processando seu score. Voce pode tentar novamente agora ou voltar ao dashboard.",
+      "Tentar novamente",
+      () => assessmentStatusQuery.refetch()
     );
   }
 
   const status = assessmentStatusQuery.data?.status;
 
   if (status && !terminalStatuses.has(status)) {
-    return (
-      <AuthGuard>
-        <PrivateShell>
-          <PageState
-            title="Score em processamento"
-            description={`Status atual: ${status}. Polling ativo com backoff progressivo.`}
-          />
-        </PrivateShell>
-      </AuthGuard>
+    return renderPageState(
+      "Score em processamento",
+      `Status atual: ${status}. Polling ativo com backoff progressivo.`
     );
   }
 
   if (status === "failed" || status === "canceled") {
-    return (
-      <AuthGuard>
-        <PrivateShell>
-          <PageState
-            title="Avaliacao nao concluida"
-            description={`Status final: ${status}. Revise o onboarding e tente novamente.`}
-            actionLabel="Refazer onboarding"
-            onAction={() => router.push("/onboarding")}
-          />
-        </PrivateShell>
-      </AuthGuard>
+    return renderPageState(
+      "Avaliacao nao concluida",
+      `Status final: ${status}. Revise o onboarding e tente novamente.`,
+      "Refazer onboarding",
+      () => router.push("/onboarding")
     );
   }
 
   if (breakdownQuery.isLoading) {
-    return (
-      <AuthGuard>
-        <PrivateShell>
-          <section className="space-y-4">
-            <CardSkeleton />
-            <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
-              <ListSkeleton rows={5} />
-              <div className="space-y-4">
-                <CardSkeleton />
-                <CardSkeleton />
-              </div>
-            </div>
-          </section>
-        </PrivateShell>
-      </AuthGuard>
-    );
+    return renderBreakdownLoading();
   }
 
   if (breakdownQuery.isError || !breakdownQuery.data) {
-    return (
-      <AuthGuard>
-        <PrivateShell>
-          <PageState
-            title="Nao foi possivel carregar o resultado"
-            description={breakdownQuery.isError ? getApiErrorMessage(breakdownQuery.error) : "Sem dados"}
-            actionLabel="Atualizar"
-            onAction={() => breakdownQuery.refetch()}
-          />
-        </PrivateShell>
-      </AuthGuard>
+    return renderPageState(
+      "Nao foi possivel carregar o resultado",
+      breakdownQuery.isError ? getApiErrorMessage(breakdownQuery.error) : "Sem dados",
+      "Atualizar",
+      () => breakdownQuery.refetch()
     );
   }
 
   if (groupedBreakdown.length === 0) {
-    return (
-      <AuthGuard>
-        <PrivateShell>
-          <PageState
-            title="Resultado vazio"
-            description="A avaliacao foi concluida, mas nao retornou itens de breakdown."
-          />
-        </PrivateShell>
-      </AuthGuard>
+    return renderPageState(
+      "Resultado vazio",
+      "A avaliacao foi concluida, mas nao retornou itens de breakdown."
     );
   }
 
   const score = Math.max(0, Math.min(100, toNumber(breakdownQuery.data.score_final)));
-
   const roadmapCtaLabel = hasRoadmapAccess
     ? createRoadmapMutation.isPending
       ? "Gerando roadmap..."

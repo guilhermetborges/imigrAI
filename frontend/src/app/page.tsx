@@ -55,7 +55,7 @@ function buildGuestSessionId(): string {
     return "guest-session-server";
   }
 
-  if (typeof globalThis.window.crypto !== "undefined" && typeof globalThis.window.crypto.randomUUID === "function") {
+  if (globalThis.window.crypto !== undefined && typeof globalThis.window.crypto.randomUUID === "function") {
     return `guest-${globalThis.window.crypto.randomUUID()}`;
   }
 

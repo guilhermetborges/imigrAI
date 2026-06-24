@@ -4,6 +4,9 @@ from typing import TypedDict
 
 MVP_PROGRAM_VERSION = "2026.01"
 MVP_PROGRAM_EFFECTIVE_FROM = "2026-01-01T00:00:00+00:00"
+BRASILEIROS_EXTERIOR_URL = (
+    "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf"
+)
 
 
 class CatalogSource(TypedDict):
@@ -39,7 +42,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Estados Unidos",
         "priority_rank": 1,
         "diaspora_population_estimate": 2085000,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "US_GENERAL_IMMIGRATION",
@@ -82,7 +85,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Portugal",
         "priority_rank": 2,
         "diaspora_population_estimate": 513000,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "PT_AIMA_VISAS",
@@ -108,7 +111,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Paraguai",
         "priority_rank": 3,
         "diaspora_population_estimate": 263200,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "PY_MIGRACIONES",
@@ -134,7 +137,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Reino Unido",
         "priority_rank": 4,
         "diaspora_population_estimate": 230000,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "UK_VISAS_IMMIGRATION",
@@ -160,7 +163,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Japao",
         "priority_rank": 5,
         "diaspora_population_estimate": 210471,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "JP_VISA_RULES",
@@ -205,7 +208,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Alemanha",
         "priority_rank": 6,
         "diaspora_population_estimate": 170400,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "DE_WORK_IMMIGRATION",
@@ -248,7 +251,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Espanha",
         "priority_rank": 7,
         "diaspora_population_estimate": 161944,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "ES_MIGRACIONES",
@@ -274,7 +277,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Italia",
         "priority_rank": 8,
         "diaspora_population_estimate": 159000,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "IT_VISTI_INGRESSO",
@@ -300,7 +303,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Canada",
         "priority_rank": 9,
         "diaspora_population_estimate": 143500,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "CA_IRCC_IMMIGRATION",
@@ -326,7 +329,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Argentina",
         "priority_rank": 10,
         "diaspora_population_estimate": 101502,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "AR_MIGRACIONES",
@@ -352,7 +355,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Franca",
         "priority_rank": 11,
         "diaspora_population_estimate": 95000,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "FR_FRANCE_VISAS",
@@ -378,7 +381,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Irlanda",
         "priority_rank": 12,
         "diaspora_population_estimate": 80000,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "IE_ISD_IMMIGRATION",
@@ -404,7 +407,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Paises Baixos",
         "priority_rank": 13,
         "diaspora_population_estimate": 80000,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "NL_IND_IMMIGRATION",
@@ -430,7 +433,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Suica",
         "priority_rank": 14,
         "diaspora_population_estimate": 64000,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "CH_SEM_ENTRY",
@@ -456,7 +459,7 @@ MVP_COUNTRY_CATALOG: list[CatalogCountry] = [
         "name": "Belgica",
         "priority_rank": 15,
         "diaspora_population_estimate": 50000,
-        "prioritization_source_url": "https://www.gov.br/mre/pt-br/assuntos/portal-consular/BrasileirosnoExterior2023.pdf",
+        "prioritization_source_url": BRASILEIROS_EXTERIOR_URL,
         "programs": [
             {
                 "code": "BE_DOFI_IMMIGRATION",

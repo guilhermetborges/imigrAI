@@ -22,6 +22,8 @@ from apps.roadmaps.schemas import (
     RoadmapStepRead,
 )
 
+ROADMAP_NOT_FOUND = "Roadmap not found"
+
 
 class RoadmapsService:
     def __init__(self, db: AsyncSession) -> None:
@@ -118,7 +120,7 @@ class RoadmapsService:
     async def process_roadmap(self, roadmap_id: UUID) -> None:
         roadmap = await self.repo.get_roadmap_for_generation(roadmap_id)
         if roadmap is None:
-            raise ValueError("Roadmap not found")
+            raise ValueError(ROADMAP_NOT_FOUND)
 
         if roadmap.status == RoadmapStatus.completed and roadmap.steps:
             return
@@ -146,9 +148,9 @@ class RoadmapsService:
     async def get_roadmap_status(self, *, roadmap_id: UUID, user_id: UUID) -> RoadmapStatusRead:
         roadmap = await self.repo.get_roadmap(roadmap_id)
         if roadmap is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Roadmap not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ROADMAP_NOT_FOUND)
         if roadmap.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Roadmap not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ROADMAP_NOT_FOUND)
 
         job = await self.jobs_repo.get_latest_job_for_roadmap(roadmap_id)
         return RoadmapStatusRead(
@@ -162,9 +164,9 @@ class RoadmapsService:
     async def get_roadmap_detail(self, *, roadmap_id: UUID, user_id: UUID) -> RoadmapDetailRead:
         roadmap = await self.repo.get_roadmap_detail(roadmap_id)
         if roadmap is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Roadmap not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ROADMAP_NOT_FOUND)
         if roadmap.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Roadmap not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ROADMAP_NOT_FOUND)
         return RoadmapDetailRead(
             roadmap=RoadmapRead.model_validate(roadmap),
             steps=[RoadmapStepRead.model_validate(step) for step in roadmap.steps],

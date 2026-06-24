@@ -160,8 +160,8 @@ export async function bootstrapAuthenticatedSession(
 
   await context.addInitScript(
     ({ access, refresh }) => {
-      window.localStorage.setItem("imigrai_access_token", access);
-      window.localStorage.setItem("imigrai_refresh_token", refresh);
+      globalThis.window.localStorage.setItem("imigrai_access_token", access);
+      globalThis.window.localStorage.setItem("imigrai_refresh_token", refresh);
     },
     { access: fakeAccessToken, refresh: fakeRefreshToken }
   );

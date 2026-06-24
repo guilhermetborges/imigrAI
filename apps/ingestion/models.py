@@ -20,6 +20,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base
 from apps.common.models import CreatedAtMixin, UUIDPrimaryKeyMixin
 
+FK_SOURCE_REGISTRY = "source_registry.id"
+FK_INGESTION_RUN_ITEM = "ingestion_run_item.id"
+ON_DELETE_SET_NULL = "SET NULL"
+
 
 class SourceType(enum.StrEnum):
     html = "html"
@@ -131,7 +135,7 @@ class IngestionRunItem(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         index=True,
     )
     source_id: Mapped[UUID] = mapped_column(
-        ForeignKey("source_registry.id", ondelete="RESTRICT"),
+        ForeignKey(FK_SOURCE_REGISTRY, ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
@@ -178,12 +182,12 @@ class BronzeDocument(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
 
     source_id: Mapped[UUID] = mapped_column(
-        ForeignKey("source_registry.id", ondelete="CASCADE"),
+        ForeignKey(FK_SOURCE_REGISTRY, ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     ingestion_run_item_id: Mapped[UUID] = mapped_column(
-        ForeignKey("ingestion_run_item.id", ondelete="CASCADE"),
+        ForeignKey(FK_INGESTION_RUN_ITEM, ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -213,7 +217,7 @@ class SilverSection(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
 
     ingestion_run_item_id: Mapped[UUID] = mapped_column(
-        ForeignKey("ingestion_run_item.id", ondelete="CASCADE"),
+        ForeignKey(FK_INGESTION_RUN_ITEM, ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -238,15 +242,15 @@ class SourceDocument(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
 
     source_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("source_registry.id", ondelete="SET NULL"),
+        ForeignKey(FK_SOURCE_REGISTRY, ondelete=ON_DELETE_SET_NULL),
         index=True,
     )
     ingestion_run_item_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("ingestion_run_item.id", ondelete="SET NULL"),
+        ForeignKey(FK_INGESTION_RUN_ITEM, ondelete=ON_DELETE_SET_NULL),
         index=True,
     )
     program_version_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("program_versions.id", ondelete="SET NULL"),
+        ForeignKey("program_versions.id", ondelete=ON_DELETE_SET_NULL),
         index=True,
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)

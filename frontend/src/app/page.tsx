@@ -51,38 +51,38 @@ interface PendingSubmission {
 }
 
 function buildGuestSessionId(): string {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return "guest-session-server";
   }
 
-  if (typeof window.crypto !== "undefined" && typeof window.crypto.randomUUID === "function") {
-    return `guest-${window.crypto.randomUUID()}`;
+  if (typeof globalThis.window.crypto !== "undefined" && typeof globalThis.window.crypto.randomUUID === "function") {
+    return `guest-${globalThis.window.crypto.randomUUID()}`;
   }
 
   return `guest-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 }
 
 function getOrCreateGuestSessionId(): string {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return "guest-session-server";
   }
 
-  const existing = window.localStorage.getItem(GUEST_SESSION_ID_KEY);
+  const existing = globalThis.window.localStorage.getItem(GUEST_SESSION_ID_KEY);
   if (existing && existing.length >= 8) {
     return existing;
   }
 
   const created = buildGuestSessionId();
-  window.localStorage.setItem(GUEST_SESSION_ID_KEY, created);
+  globalThis.window.localStorage.setItem(GUEST_SESSION_ID_KEY, created);
   return created;
 }
 
 function readPendingSubmission(): PendingSubmission | null {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return null;
   }
 
-  const raw = window.localStorage.getItem(PENDING_SUBMISSION_KEY);
+  const raw = globalThis.window.localStorage.getItem(PENDING_SUBMISSION_KEY);
   if (!raw) {
     return null;
   }
@@ -99,17 +99,17 @@ function readPendingSubmission(): PendingSubmission | null {
 }
 
 function writePendingSubmission(pending: PendingSubmission): void {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return;
   }
-  window.localStorage.setItem(PENDING_SUBMISSION_KEY, JSON.stringify(pending));
+  globalThis.window.localStorage.setItem(PENDING_SUBMISSION_KEY, JSON.stringify(pending));
 }
 
 function clearPendingSubmission(): void {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return;
   }
-  window.localStorage.removeItem(PENDING_SUBMISSION_KEY);
+  globalThis.window.localStorage.removeItem(PENDING_SUBMISSION_KEY);
 }
 
 const educationOptions = [

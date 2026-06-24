@@ -82,6 +82,47 @@ async def _seed_country(db: AsyncSession, country_data: dict, summary: dict[str,
     return country
 
 
+async def _seed_program(
+    db: AsyncSession,
+    country: Country,
+    program_data: dict,
+    summary: dict[str, int],
+) -> ImmigrationProgram:
+    program = await db.scalar(
+        select(ImmigrationProgram).where(
+            and_(
+                ImmigrationProgram.country_id == country.id,
+                ImmigrationProgram.code == program_data["code"],
+            )
+        )
+    )
+    if program is None:
+        program = ImmigrationProgram(
+            country_id=country.id,
+            code=program_data["code"],
+            name=program_data["name"],
+            description=program_data["description"],
+            is_active=True,
+        )
+        db.add(program)
+        summary["programs_created"] += 1
+        await db.flush()
+    else:
+        changed = False
+        if program.name != program_data["name"]:
+            program.name = program_data["name"]
+            changed = True
+        if program.description != program_data["description"]:
+            program.description = program_data["description"]
+            changed = True
+        if not program.is_active:
+            program.is_active = True
+            changed = True
+        if changed:
+            summary["programs_updated"] += 1
+    return program
+
+
 async def _seed_programs_for_country(
     db: AsyncSession,
     repo: IngestionRepository,
@@ -91,38 +132,7 @@ async def _seed_programs_for_country(
     summary: dict[str, int],
 ) -> None:
     for program_data in country_data["programs"]:
-        program = await db.scalar(
-            select(ImmigrationProgram).where(
-                and_(
-                    ImmigrationProgram.country_id == country.id,
-                    ImmigrationProgram.code == program_data["code"],
-                )
-            )
-        )
-        if program is None:
-            program = ImmigrationProgram(
-                country_id=country.id,
-                code=program_data["code"],
-                name=program_data["name"],
-                description=program_data["description"],
-                is_active=True,
-            )
-            db.add(program)
-            summary["programs_created"] += 1
-            await db.flush()
-        else:
-            changed = False
-            if program.name != program_data["name"]:
-                program.name = program_data["name"]
-                changed = True
-            if program.description != program_data["description"]:
-                program.description = program_data["description"]
-                changed = True
-            if not program.is_active:
-                program.is_active = True
-                changed = True
-            if changed:
-                summary["programs_updated"] += 1
+        program = await _seed_program(db, country, program_data, summary)
 
         await _seed_program_version_and_sources(
             db, repo, program, country_data, program_data, effective_from, summary

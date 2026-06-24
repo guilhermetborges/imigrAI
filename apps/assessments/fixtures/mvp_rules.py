@@ -9,6 +9,9 @@ from apps.assessments.engine import (
     RuleOutcomeInput,
 )
 
+MVP_PROGRAM_EFFECTIVE_FROM = "2026-01-01T00:00:00+00:00"
+FIELD_KEY_IDIOMAS_NIVEL_EN = "idiomas_nivel.en"
+
 MVP_RULE_FIXTURES = {
     "CA": {
         "country": {"code": "CA", "name": "Canada"},
@@ -16,7 +19,7 @@ MVP_RULE_FIXTURES = {
         "program_version": {
             "id": "9a6cff22-dd5a-4f60-bfbb-54b4a8dc0ea1",
             "version": "2026.01",
-            "effective_from": "2026-01-01T00:00:00+00:00",
+            "effective_from": MVP_PROGRAM_EFFECTIVE_FROM,
             "effective_to": None,
         },
         "rule_groups": [
@@ -133,7 +136,7 @@ MVP_RULE_FIXTURES = {
                 "conditions": [
                     {
                         "id": "7e0f77af-c50e-47d4-9efd-8add78ef8f3d",
-                        "field_key": "idiomas_nivel.en",
+                        "field_key": FIELD_KEY_IDIOMAS_NIVEL_EN,
                         "operator": "gte",
                         "value_json": 5,
                         "condition_order": 1,
@@ -211,7 +214,7 @@ MVP_RULE_FIXTURES = {
                 "conditions": [
                     {
                         "id": "33275bf0-f4ba-46fb-ae6d-13e0e58f9f26",
-                        "field_key": "idiomas_nivel.en",
+                        "field_key": FIELD_KEY_IDIOMAS_NIVEL_EN,
                         "operator": "lt",
                         "value_json": 5,
                         "condition_order": 1,
@@ -236,7 +239,7 @@ MVP_RULE_FIXTURES = {
         "program_version": {
             "id": "4cfcd0c1-e078-49c0-8ec8-4cf1fb251d2b",
             "version": "2026.01",
-            "effective_from": "2026-01-01T00:00:00+00:00",
+            "effective_from": MVP_PROGRAM_EFFECTIVE_FROM,
             "effective_to": None,
         },
         "rule_groups": [
@@ -404,7 +407,7 @@ MVP_RULE_FIXTURES = {
         "program_version": {
             "id": "54b82206-3858-4125-8ce3-6c440e6dddc8",
             "version": "2026.01",
-            "effective_from": "2026-01-01T00:00:00+00:00",
+            "effective_from": MVP_PROGRAM_EFFECTIVE_FROM,
             "effective_to": None,
         },
         "rule_groups": [
@@ -494,7 +497,7 @@ MVP_RULE_FIXTURES = {
         "program_version": {
             "id": "b2e31b89-6d98-492f-a40d-0d0cd86b0869",
             "version": "2026.01",
-            "effective_from": "2026-01-01T00:00:00+00:00",
+            "effective_from": MVP_PROGRAM_EFFECTIVE_FROM,
             "effective_to": None,
         },
         "rule_groups": [
@@ -533,7 +536,7 @@ MVP_RULE_FIXTURES = {
                 "conditions": [
                     {
                         "id": "7df77ffe-2f49-42ec-b68f-28af93b26e20",
-                        "field_key": "idiomas_nivel.en",
+                        "field_key": FIELD_KEY_IDIOMAS_NIVEL_EN,
                         "operator": "gte",
                         "value_json": 4,
                         "condition_order": 1,
@@ -584,7 +587,7 @@ MVP_RULE_FIXTURES = {
         "program_version": {
             "id": "1c7f52bc-6fd4-4cc6-825e-7bca0f974ebf",
             "version": "2026.01",
-            "effective_from": "2026-01-01T00:00:00+00:00",
+            "effective_from": MVP_PROGRAM_EFFECTIVE_FROM,
             "effective_to": None,
         },
         "rule_groups": [
@@ -623,7 +626,7 @@ MVP_RULE_FIXTURES = {
                 "conditions": [
                     {
                         "id": "3c7ce8f7-c7de-485b-b6c0-a4213f4f0e72",
-                        "field_key": "idiomas_nivel.en",
+                        "field_key": FIELD_KEY_IDIOMAS_NIVEL_EN,
                         "operator": "gte",
                         "value_json": 3,
                         "condition_order": 1,
@@ -648,7 +651,7 @@ MVP_RULE_FIXTURES = {
         "program_version": {
             "id": "8cadfce6-57fd-4975-9530-9012cccd5be6",
             "version": "2026.01",
-            "effective_from": "2026-01-01T00:00:00+00:00",
+            "effective_from": MVP_PROGRAM_EFFECTIVE_FROM,
             "effective_to": None,
         },
         "rule_groups": [

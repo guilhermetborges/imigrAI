@@ -5,7 +5,7 @@ const REFRESH_KEY = "imigrai_refresh_token";
 const ACCESS_COOKIE = "imigrai_access_token";
 
 function isBrowser(): boolean {
-  return typeof globalThis.window !== "undefined";
+  return globalThis.window !== undefined;
 }
 
 export function getAccessToken(): string | null {

@@ -22,20 +22,25 @@ except ImportError:  # pragma: no cover - fallback for local env without depende
         def observe(self, value: float) -> None:
             _ = value
 
-    def Counter(*args, **kwargs):  # type: ignore[override]
+    def _counter_stub(*args, **kwargs):
         _ = args, kwargs
         return _MetricStub()
 
-    def Gauge(*args, **kwargs):  # type: ignore[override]
+    def _gauge_stub(*args, **kwargs):
         _ = args, kwargs
         return _MetricStub()
 
-    def Histogram(*args, **kwargs):  # type: ignore[override]
+    def _histogram_stub(*args, **kwargs):
         _ = args, kwargs
         return _MetricStub()
 
-    def generate_latest() -> bytes:
+    def _generate_latest_stub() -> bytes:
         return b""
+
+    Counter = _counter_stub
+    Gauge = _gauge_stub
+    Histogram = _histogram_stub
+    generate_latest = _generate_latest_stub
 
 
 HTTP_REQUESTS_TOTAL = Counter(

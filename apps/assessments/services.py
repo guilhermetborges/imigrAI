@@ -28,6 +28,8 @@ from apps.billing.services import BillingService
 from apps.common.models import JobType
 from apps.common.repositories import JobsRepository
 
+ASSESSMENT_NOT_FOUND = "Assessment not found"
+
 
 class AssessmentsService:
     def __init__(self, db: AsyncSession) -> None:
@@ -103,13 +105,11 @@ class AssessmentsService:
     ) -> AssessmentStatusRead:
         assessment = await self.repo.get_assessment_status(assessment_id)
         if assessment is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ASSESSMENT_NOT_FOUND)
         if assessment.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Assessment not found",
+                detail=ASSESSMENT_NOT_FOUND,
             )
 
         job = await self.jobs_repo.get_latest_job_for_assessment(assessment.id)
@@ -123,7 +123,7 @@ class AssessmentsService:
     async def process_assessment(self, assessment_id: UUID) -> None:
         assessment = await self.repo.get_assessment(assessment_id)
         if assessment is None:
-            raise ValueError("Assessment not found")
+            raise ValueError(ASSESSMENT_NOT_FOUND)
 
         if assessment.result is not None and assessment.status == AssessmentStatus.completed:
             return
@@ -154,12 +154,12 @@ class AssessmentsService:
         if assessment is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Assessment not found",
+                detail=ASSESSMENT_NOT_FOUND,
             )
         if assessment.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Assessment not found",
+                detail=ASSESSMENT_NOT_FOUND,
             )
 
         if assessment.result is None:

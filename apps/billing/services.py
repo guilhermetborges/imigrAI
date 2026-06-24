@@ -316,7 +316,7 @@ class BillingService:
         should_count_conversion = plan.code == self.settings.pro_plan_code and (
             existing is None or existing.plan_id != plan.id
         )
-        user_id = self._resolve_user_id_from_subscription(
+        user_id = await self._resolve_user_id_from_subscription(
             existing=existing,
             user_id_hint=user_id_hint,
             subscription_object=subscription_object,

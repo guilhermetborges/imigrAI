@@ -38,7 +38,6 @@ def ingest_source_task(
         try:
             status = asyncio.run(
                 _process_run_item(
-                    run_id=run_uuid,
                     run_item_id=run_item_uuid,
                     attempt_number=int(self.request.retries) + 1,
                     trace_id=trace_id,

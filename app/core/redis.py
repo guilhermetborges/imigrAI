@@ -1,3 +1,4 @@
+import asyncio
 import time
 from functools import lru_cache
 
@@ -16,6 +17,7 @@ class InMemoryRedis:
         self._store: dict[str, tuple[int, float | None]] = {}
 
     async def ping(self) -> bool:
+        await asyncio.sleep(0)
         return True
 
     async def incr(self, key: str) -> int:

@@ -12,6 +12,10 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { formatDate } from "@/lib/formatters";
 
+function getCheckoutLabel(isPending: boolean): string {
+  return isPending ? "Abrindo checkout..." : "Fazer upgrade para Pro";
+}
+
 export default function SubscriptionSettingsPage(): JSX.Element {
   const searchParams = useSearchParams();
   const { entitlementsQuery, checkoutMutation } = useSubscription();
@@ -45,7 +49,7 @@ export default function SubscriptionSettingsPage(): JSX.Element {
   const entitlements = entitlementsQuery.data?.entitlements ?? [];
   const usageCounters = entitlementsQuery.data?.usage_counters ?? [];
   const canUpgrade = !plan || plan.is_free;
-  const checkoutLabel = checkoutMutation.isPending ? "Abrindo checkout..." : "Fazer upgrade para Pro";
+  const checkoutLabel = getCheckoutLabel(checkoutMutation.isPending);
   const subscriptionStatus = subscription?.status ?? "-";
   const currentPeriodEnd = formatDate(subscription?.current_period_end ?? null);
 

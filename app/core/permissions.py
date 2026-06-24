@@ -25,7 +25,7 @@ def require_feature(feature_key: str) -> Callable:
 def require_role(*allowed_roles: UserRole) -> Callable:
     allowed = set(allowed_roles)
 
-    async def dependency(current_user: User = Depends(get_current_user)) -> User:
+    def dependency(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in allowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

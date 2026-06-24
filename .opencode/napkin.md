@@ -11,6 +11,8 @@
    Do instead: keep default backend dependencies runnable with SQLite file storage and in-memory queue/cache unless the user explicitly asks for external services.
 2. **[2026-06-22] Sonar scans local sources broadly**
    Do instead: keep real `.env` files excluded from Sonar and store only empty placeholders in `.env.example`.
+3. **[2026-06-23] Docker SQLite bind mounts can hit host permission labels**
+   Do instead: use named Docker volumes for `/app/data` and `/app/.cache` when running the local compose stack.
 
 ## Shell & Command Reliability
 1. **[2026-06-22] Avoid leaking env secrets**

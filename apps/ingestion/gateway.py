@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TypeVar
 from uuid import UUID
 
-from sqlalchemy.exc import DBAPIError, OperationalError
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.ingestion.models import IngestionRunTrigger, SourceRegistry
@@ -39,7 +39,7 @@ class LocalDataGateway:
         for attempt in range(self.max_retries + 1):
             try:
                 return await operation()
-            except (OperationalError, DBAPIError) as exc:
+            except DBAPIError as exc:
                 if attempt >= self.max_retries:
                     logger.exception(
                         "gateway_operation_failed",

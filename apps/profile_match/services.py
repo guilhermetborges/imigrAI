@@ -14,6 +14,8 @@ from apps.profile_match.schemas import (
     ProfileMatchSubmitRequest,
 )
 
+SUBMISSION_NOT_FOUND = "Submission not found"
+
 
 @dataclass(frozen=True)
 class CountryRule:
@@ -272,9 +274,7 @@ class ProfileMatchService:
     ) -> ProfileMatchResultRead:
         submission = await self.repo.get_submission(payload.submission_id)
         if submission is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=SUBMISSION_NOT_FOUND)
 
         if submission.user_id is None:
             if submission.guest_session_id != payload.guest_session_id:
@@ -286,18 +286,14 @@ class ProfileMatchService:
             await self.repo.commit()
             await self.repo.refresh(submission)
         elif submission.user_id != user.id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=SUBMISSION_NOT_FOUND)
 
         return self._to_result_read(submission)
 
     async def get_results(self, *, submission_id: UUID, user: User) -> ProfileMatchResultRead:
         submission = await self.repo.get_submission(submission_id)
         if submission is None or submission.user_id != user.id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=SUBMISSION_NOT_FOUND)
         return self._to_result_read(submission)
 
     def _to_result_read(self, submission) -> ProfileMatchResultRead:

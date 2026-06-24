@@ -19,7 +19,7 @@ const forbiddenPublicSecrets = [
   process.env.NEXT_PUBLIC_SERVICE_KEY
 ];
 
-if (forbiddenPublicSecrets.some((value) => Boolean(value))) {
+if (forbiddenPublicSecrets.some(Boolean)) {
   throw new Error(
     "Sensitive key detected in NEXT_PUBLIC_* env. Use only anon/public keys on frontend."
   );

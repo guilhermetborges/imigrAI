@@ -38,4 +38,4 @@ AND tablename IN (
   'usage_counters',
   'user_profile_snapshots'
 )
-ORDER BY tablename, policyname;
+ORDER BY tablename ASC, policyname ASC;

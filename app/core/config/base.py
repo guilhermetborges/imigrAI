@@ -152,9 +152,7 @@ class BaseConfig(BaseSettings):
             raise ValueError("FORCE_HTTPS_REDIRECT must be true in production")
         for origin in self.cors_origins:
             lower_origin = origin.lower()
-            if lower_origin.startswith("http://localhost") or lower_origin.startswith(
-                "http://127.0.0.1"
-            ):
+            if lower_origin.startswith(("http://localhost", "http://127.0.0.1")):
                 raise ValueError("CORS_ORIGINS must not include localhost in production")
             if not lower_origin.startswith("https://"):
                 raise ValueError("CORS_ORIGINS must use HTTPS in production")

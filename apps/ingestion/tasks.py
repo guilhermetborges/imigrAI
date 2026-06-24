@@ -65,7 +65,7 @@ def ingest_source_task(
             dead_letter = definitive or (not transient) or retries >= max_retries
             if dead_letter:
                 asyncio.run(_finalize_run(run_uuid))
-                logger.error(
+                logger.exception(
                     "ingestion_item_dead_letter",
                     extra={
                         "run_id": run_id,
@@ -187,7 +187,6 @@ async def _create_run(
 
 async def _process_run_item(
     *,
-    run_id: UUID,
     run_item_id: UUID,
     attempt_number: int,
     trace_id: str | None,

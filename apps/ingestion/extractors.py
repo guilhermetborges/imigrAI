@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 
 _CEFR_LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2")
 _INCOME_PATTERN = re.compile(
-    r"(minimum|minimo|minima|minim(?:o|a)?|at least|>=)\D{0,20}(\d[\d\.,]{2,})",
+    r"(minimum|minim[oa]?|at least|>=)\D{0,20}(\d[\d\.,]{2,})",
     flags=re.IGNORECASE,
 )
 _AGE_PATTERN = re.compile(
-    r"(age|idade|edad|years|anos)\D{0,20}([1-9][0-9])",
+    r"(age|idade|edad|years|anos)\D{0,20}([1-9]\d)",
     flags=re.IGNORECASE,
 )
 

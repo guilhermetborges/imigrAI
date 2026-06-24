@@ -100,7 +100,7 @@ export default function SubscriptionSettingsPage(): JSX.Element {
               {entitlements.map((entitlement) => (
                 <li key={entitlement.id}>
                   {entitlement.feature_key} | habilitado: {entitlement.is_enabled ? "sim" : "nao"}
-                  {entitlement.limit_value !== null ? ` | limite: ${entitlement.limit_value}` : ""}
+                  {entitlement.limit_value === null ? "" : ` | limite: ${entitlement.limit_value}`}
                 </li>
               ))}
             </ul>

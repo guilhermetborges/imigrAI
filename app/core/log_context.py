@@ -11,7 +11,7 @@ _log_context: ContextVar[dict[str, str | None] | None] = ContextVar(
 
 
 def _empty_log_context() -> dict[str, str | None]:
-    return {key: None for key in _LOG_CONTEXT_KEYS}
+    return dict.fromkeys(_LOG_CONTEXT_KEYS)
 
 
 def get_log_context() -> dict[str, str | None]:

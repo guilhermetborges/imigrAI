@@ -342,7 +342,7 @@ export default function LandingPage(): JSX.Element {
 
           <div className="grid gap-3 rounded-xl border border-ink/10 bg-white p-4 md:grid-cols-2">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="h-4 w-4 accent-[#1993ab]" {...register("has_job_offer")} />
+              <input type="checkbox" className="h-4 w-4 accent-[#1993ab]" {...register("has_job_offer")} />{" "}
               Possuo oferta de trabalho
             </label>
             <label className="flex items-center gap-2 text-sm">
@@ -351,7 +351,7 @@ export default function LandingPage(): JSX.Element {
                 className="h-4 w-4 accent-[#1993ab]"
                 {...register("has_family_abroad")}
               />
-              Tenho familia no exterior
+              {" "}Tenho familia no exterior
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -359,7 +359,7 @@ export default function LandingPage(): JSX.Element {
                 className="h-4 w-4 accent-[#1993ab]"
                 {...register("willing_to_learn_language")}
               />
-              Tenho disponibilidade para aprender novo idioma
+              {" "}Tenho disponibilidade para aprender novo idioma
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -367,7 +367,7 @@ export default function LandingPage(): JSX.Element {
                 className="h-4 w-4 accent-[#1993ab]"
                 {...register("wants_fast_citizenship")}
               />
-              Prioridade em paises com cidadania mais rapida
+              {" "}Prioridade em paises com cidadania mais rapida
             </label>
           </div>
 

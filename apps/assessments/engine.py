@@ -143,7 +143,7 @@ class ScoreEngine:
                 faixa="baixo",
                 is_blocked=True,
                 is_eligible=False,
-                fatores_positivos=tuple(),
+                fatores_positivos=(),
                 gaps_criticos=blocking_messages,
                 breakdown=tuple(blocking_items),
             )

@@ -49,6 +49,15 @@ function renderPageState(title: string, description: string, actionLabel?: strin
   );
 }
 
+function getRoadmapLabel(hasAccess: boolean, isPending: boolean): string {
+  if (!hasAccess) return "Fazer upgrade para gerar roadmap";
+  return isPending ? "Gerando roadmap..." : "Gerar roadmap Pro";
+}
+
+function getButtonVariant(hasAccess: boolean): "primary" | "secondary" {
+  return hasAccess ? "primary" : "secondary";
+}
+
 function renderBreakdownLoading(): JSX.Element {
   return renderLoadingShell(
     <section className="space-y-4">
@@ -193,11 +202,7 @@ export default function ResultsPage({ params }: Readonly<ResultsPageProps>): JSX
   }
 
   const score = Math.max(0, Math.min(100, toNumber(breakdownQuery.data.score_final)));
-  const roadmapCtaLabel = hasRoadmapAccess
-    ? createRoadmapMutation.isPending
-      ? "Gerando roadmap..."
-      : "Gerar roadmap Pro"
-    : "Fazer upgrade para gerar roadmap";
+  const roadmapCtaLabel = getRoadmapLabel(hasRoadmapAccess, createRoadmapMutation.isPending);
 
   return (
     <AuthGuard>
@@ -239,7 +244,7 @@ export default function ResultsPage({ params }: Readonly<ResultsPageProps>): JSX
                 <Button
                   className="mt-4"
                   fullWidth
-                  variant={hasRoadmapAccess ? "primary" : "secondary"}
+                  variant={getButtonVariant(hasRoadmapAccess)}
                   disabled={createRoadmapMutation.isPending}
                   onClick={handleRoadmapAction}
                 >

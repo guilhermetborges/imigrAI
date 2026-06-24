@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
@@ -362,6 +363,7 @@ class BillingService:
         user_id_hint: str | None,
         subscription_object: dict,
     ) -> UUID:
+        await asyncio.sleep(0)
         if existing is not None:
             return existing.user_id
         metadata = subscription_object.get("metadata", {}) or {}

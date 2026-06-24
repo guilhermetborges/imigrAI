@@ -53,56 +53,11 @@ class Publisher:
         published = False
 
         if allow_publish and diff_summary.changed:
-            now = datetime.now(UTC)
-            active_versions = await self.repo.list_active_program_versions(program.id)
-            if active_versions:
-                await self.repo.archive_program_versions(active_versions, at=now)
-
-            version_label = self._build_version_label(now=now, semantic_hash=semantic_hash)
-            program_version = await self.repo.create_program_version(
-                {
-                    "program_id": program.id,
-                    "version": version_label,
-                    "status": ProgramVersionStatus.active,
-                    "effective_from": now,
-                    "effective_to": None,
-                }
+            published_version_id, published = await self._publish_version(
+                program=program,
+                payload=payload,
+                semantic_hash=semantic_hash,
             )
-            published_version_id = program_version.id
-            published = True
-
-            for group in payload.rule_groups:
-                rule_group = await self.repo.create_rule_group(
-                    {
-                        "program_version_id": program_version.id,
-                        "code": group.code,
-                        "name": group.name,
-                        "description": group.description,
-                        "priority": group.priority,
-                        "match_operator": group.match_operator,
-                    }
-                )
-                for condition in group.conditions:
-                    await self.repo.create_rule_condition(
-                        {
-                            "rule_group_id": rule_group.id,
-                            "field_key": condition.field_key,
-                            "operator": condition.operator,
-                            "value_json": condition.value_json,
-                            "condition_order": condition.condition_order,
-                            "is_required": condition.is_required,
-                        }
-                    )
-                for outcome in group.outcomes:
-                    await self.repo.create_rule_outcome(
-                        {
-                            "rule_group_id": rule_group.id,
-                            "score_delta": outcome.score_delta,
-                            "is_blocking": outcome.is_blocking,
-                            "explanation_message": outcome.explanation_message,
-                            "outcome_code": outcome.outcome_code,
-                        }
-                    )
 
         source_document = await self.repo.create_source_document(
             {
@@ -148,6 +103,64 @@ class Publisher:
             "source_document_id": str(source_document.id),
             "source_extraction_id": str(extraction.id),
         }
+
+    async def _publish_version(
+        self,
+        *,
+        program: object,
+        payload: NormalizedProgramPayload,
+        semantic_hash: str,
+    ) -> tuple[UUID, bool]:
+        now = datetime.now(UTC)
+        active_versions = await self.repo.list_active_program_versions(program.id)
+        if active_versions:
+            await self.repo.archive_program_versions(active_versions, at=now)
+
+        version_label = self._build_version_label(now=now, semantic_hash=semantic_hash)
+        program_version = await self.repo.create_program_version(
+            {
+                "program_id": program.id,
+                "version": version_label,
+                "status": ProgramVersionStatus.active,
+                "effective_from": now,
+                "effective_to": None,
+            }
+        )
+
+        for group in payload.rule_groups:
+            rule_group = await self.repo.create_rule_group(
+                {
+                    "program_version_id": program_version.id,
+                    "code": group.code,
+                    "name": group.name,
+                    "description": group.description,
+                    "priority": group.priority,
+                    "match_operator": group.match_operator,
+                }
+            )
+            for condition in group.conditions:
+                await self.repo.create_rule_condition(
+                    {
+                        "rule_group_id": rule_group.id,
+                        "field_key": condition.field_key,
+                        "operator": condition.operator,
+                        "value_json": condition.value_json,
+                        "condition_order": condition.condition_order,
+                        "is_required": condition.is_required,
+                    }
+                )
+            for outcome in group.outcomes:
+                await self.repo.create_rule_outcome(
+                    {
+                        "rule_group_id": rule_group.id,
+                        "score_delta": outcome.score_delta,
+                        "is_blocking": outcome.is_blocking,
+                        "explanation_message": outcome.explanation_message,
+                        "outcome_code": outcome.outcome_code,
+                    }
+                )
+
+        return program_version.id, True
 
     def _build_version_label(self, *, now: datetime, semantic_hash: str) -> str:
         label = f"{now:%Y%m%d%H%M%S}-{semantic_hash[:8]}"

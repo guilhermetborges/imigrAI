@@ -25,6 +25,7 @@ class InMemoryRedis:
         value, expires_at = self._store.get(key, (0, None))
         value += 1
         self._store[key] = (value, expires_at)
+        await asyncio.sleep(0)
         return value
 
     async def expire(self, key: str, seconds: int) -> bool:
@@ -33,6 +34,7 @@ class InMemoryRedis:
             return False
         value, _ = self._store[key]
         self._store[key] = (value, time.time() + seconds)
+        await asyncio.sleep(0)
         return True
 
     def _delete_if_expired(self, key: str) -> None:

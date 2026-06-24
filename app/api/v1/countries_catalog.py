@@ -17,6 +17,28 @@ router = APIRouter(prefix="/countries", tags=["countries"])
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
+async def _build_source_documents(
+    repo: ImmigrationRulesRepository,
+    latest_version: object | None,
+) -> list[ProgramSourceCatalogRead]:
+    documents: list[ProgramSourceCatalogRead] = []
+    if latest_version is None:
+        return documents
+    source_documents = await repo.list_source_documents_by_program_version(latest_version.id)
+    for source_document in source_documents:
+        source_key = None
+        if source_document.metadata_json:
+            source_key = source_document.metadata_json.get("source_key")
+        documents.append(
+            ProgramSourceCatalogRead(
+                source_key=source_key,
+                title=source_document.title,
+                source_url=source_document.source_url,
+            )
+        )
+    return documents
+
+
 @router.get("")
 async def list_country_catalog(db: DbSession) -> list[CountryCatalogRead]:
     repo = ImmigrationRulesRepository(db)
@@ -54,22 +76,7 @@ async def list_country_programs(
     program_payload: list[ProgramCatalogRead] = []
     for program in programs:
         latest_version = await repo.get_latest_program_version_for_program(program.id)
-        documents: list[ProgramSourceCatalogRead] = []
-        if latest_version is not None:
-            source_documents = await repo.list_source_documents_by_program_version(
-                latest_version.id
-            )
-            for source_document in source_documents:
-                source_key = None
-                if source_document.metadata_json:
-                    source_key = source_document.metadata_json.get("source_key")
-                documents.append(
-                    ProgramSourceCatalogRead(
-                        source_key=source_key,
-                        title=source_document.title,
-                        source_url=source_document.source_url,
-                    )
-                )
+        documents = await _build_source_documents(repo, latest_version)
 
         program_payload.append(
             ProgramCatalogRead(

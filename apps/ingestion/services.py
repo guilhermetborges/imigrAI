@@ -133,177 +133,191 @@ class IngestionPipelineService:
         now = datetime.now(UTC)
 
         try:
-            if run.status == IngestionRunStatus.pending:
-                await self.repo.mark_run_running(run)
-            await self.repo.mark_run_item_running(item, attempt_number=attempt_number)
+            return await self._execute_processing(item, source, run, now, attempt_number)
+        except Exception as exc:
+            await self._handle_processing_error(exc, run_item_id, source)
+            raise
+
+    async def _execute_processing(
+        self,
+        item: object,
+        source: object,
+        run: object,
+        now: datetime,
+        attempt_number: int,
+    ) -> IngestionRunItemStatus:
+        if run.status == IngestionRunStatus.pending:
+            await self.repo.mark_run_running(run)
+        await self.repo.mark_run_item_running(item, attempt_number=attempt_number)
+        await self.repo.commit()
+
+        if source.quarantine_until and source.quarantine_until > now:
+            await self.repo.mark_run_item_quarantined(
+                item,
+                error_message=f"source quarantined until {source.quarantine_until.isoformat()}",
+            )
             await self.repo.commit()
+            return IngestionRunItemStatus.quarantined
 
-            if source.quarantine_until and source.quarantine_until > now:
-                await self.repo.mark_run_item_quarantined(
-                    item,
-                    error_message=f"source quarantined until {source.quarantine_until.isoformat()}",
-                )
-                await self.repo.commit()
-                return IngestionRunItemStatus.quarantined
+        fetch_result = self.fetcher.fetch(source)
+        raw_hash = hashlib.sha256(fetch_result.content).hexdigest()
 
-            fetch_result = self.fetcher.fetch(source)
-            raw_hash = hashlib.sha256(fetch_result.content).hexdigest()
-
-            latest_bronze = await self.repo.get_latest_bronze_document_by_source(source.id)
-            if latest_bronze and latest_bronze.checksum_sha256 == raw_hash:
-                await self.repo.mark_run_item_completed(
-                    item,
-                    status=IngestionRunItemStatus.skipped,
-                    raw_hash_sha256=raw_hash,
-                    semantic_hash_sha256=item.semantic_hash_sha256,
-                    parser_used=item.parser_used,
-                    parser_mode=item.parser_mode,
-                    confidence_score=(
-                        float(item.confidence_score) if item.confidence_score else None
-                    ),
-                    manual_review_required=item.manual_review_required,
-                    diff_summary_json={"changed": False, "reason": "raw hash unchanged"},
-                    metadata_json={"fetch_metadata": fetch_result.metadata_json},
-                )
-                await self.repo.commit()
-                return IngestionRunItemStatus.skipped
-
-            stored = self.storage.store(
-                source_key=source.source_key,
-                run_item_id=item.id,
-                payload=fetch_result.content,
-                content_type=fetch_result.content_type,
-            )
-            await self.repo.create_bronze_document(
-                {
-                    "source_id": source.id,
-                    "ingestion_run_item_id": item.id,
-                    "source_url": fetch_result.final_url,
-                    "content_type": fetch_result.content_type,
-                    "content_length": fetch_result.content_length,
-                    "storage_bucket": stored.bucket,
-                    "storage_path": stored.path,
-                    "storage_uri": stored.uri,
-                    "checksum_sha256": raw_hash,
-                    "metadata_json": {
-                        **fetch_result.metadata_json,
-                        **stored.metadata_json,
-                    },
-                }
-            )
-
-            deterministic = self.deterministic_extractor.extract(
-                source=source,
-                content=fetch_result.content,
-                content_type=fetch_result.content_type,
-                title=fetch_result.title,
-            )
-            payload = deterministic.payload
-
-            if payload.confidence_score < source.confidence_threshold:
-                payload = self.llm_fallback_extractor.extract(
-                    source=source,
-                    text_content=deterministic.text_content,
-                    fallback_title=fetch_result.title,
-                )
-
-            validated_payload = NormalizedProgramPayload.model_validate(
-                payload.model_dump(mode="json")
-            )
-            semantic_hash = self.diff_engine.compute_semantic_hash(validated_payload)
-
-            previous_item = await self.repo.get_last_completed_item_for_source(source.id)
-            previous_hash = previous_item.semantic_hash_sha256 if previous_item else None
-
-            previous_program_version = None
-            country = await self.repo.get_country_by_code(validated_payload.country_code)
-            if country is not None:
-                program = await self.repo.get_program_by_country_and_code(
-                    country_id=country.id,
-                    code=validated_payload.program_code,
-                )
-                if program is not None:
-                    previous_program_version = (
-                        await self.repo.get_latest_program_version_with_rules(program.id)
-                    )
-
-            diff_summary: DiffSummary = self.diff_engine.compare(
-                payload=validated_payload,
-                current_hash=semantic_hash,
-                previous_hash=previous_hash,
-                previous_program_version=previous_program_version,
-            )
-
-            await self.repo.replace_silver_sections(
-                run_item_id=item.id,
-                sections_payload=[
-                    {
-                        **section,
-                        "semantic_hash_sha256": hashlib.sha256(
-                            section["text_content"].encode("utf-8")
-                        ).hexdigest(),
-                    }
-                    for section in validated_payload.sections
-                ],
-            )
-
-            can_auto_publish = (
-                not validated_payload.manual_review_required
-                and validated_payload.confidence_score >= source.confidence_threshold
-            )
-            publish_result = await self.publisher.publish(
-                source=source,
-                run_item=item,
-                payload=validated_payload,
-                diff_summary=diff_summary,
-                semantic_hash=semantic_hash,
-                raw_hash_sha256=raw_hash,
-                raw_storage_uri=stored.uri,
-                allow_publish=can_auto_publish,
-            )
-
-            status = IngestionRunItemStatus.completed
-            if not can_auto_publish:
-                status = IngestionRunItemStatus.manual_review
-            elif not diff_summary.changed:
-                status = IngestionRunItemStatus.skipped
-
+        latest_bronze = await self.repo.get_latest_bronze_document_by_source(source.id)
+        if latest_bronze and latest_bronze.checksum_sha256 == raw_hash:
             await self.repo.mark_run_item_completed(
                 item,
-                status=status,
+                status=IngestionRunItemStatus.skipped,
                 raw_hash_sha256=raw_hash,
-                semantic_hash_sha256=semantic_hash,
-                parser_used=validated_payload.parser_used,
-                parser_mode=validated_payload.parser_mode,
-                confidence_score=float(validated_payload.confidence_score),
-                manual_review_required=validated_payload.manual_review_required,
-                diff_summary_json=diff_summary.model_dump(),
-                metadata_json={
-                    "fetch_etag": fetch_result.etag,
-                    "fetch_last_modified": fetch_result.last_modified,
-                    "publish": publish_result,
-                },
+                semantic_hash_sha256=item.semantic_hash_sha256,
+                parser_used=item.parser_used,
+                parser_mode=item.parser_mode,
+                confidence_score=(float(item.confidence_score) if item.confidence_score else None),
+                manual_review_required=item.manual_review_required,
+                diff_summary_json={"changed": False, "reason": "raw hash unchanged"},
+                metadata_json={"fetch_metadata": fetch_result.metadata_json},
             )
-            await self.repo.reset_source_health(source)
             await self.repo.commit()
-            return status
-        except Exception as exc:
-            logger.exception(
-                "ingestion_run_item_failed",
-                extra={"run_item_id": str(run_item_id), "source_key": source.source_key},
+            return IngestionRunItemStatus.skipped
+
+        stored = self.storage.store(
+            source_key=source.source_key,
+            run_item_id=item.id,
+            payload=fetch_result.content,
+            content_type=fetch_result.content_type,
+        )
+        await self.repo.create_bronze_document(
+            {
+                "source_id": source.id,
+                "ingestion_run_item_id": item.id,
+                "source_url": fetch_result.final_url,
+                "content_type": fetch_result.content_type,
+                "content_length": fetch_result.content_length,
+                "storage_bucket": stored.bucket,
+                "storage_path": stored.path,
+                "storage_uri": stored.uri,
+                "checksum_sha256": raw_hash,
+                "metadata_json": {
+                    **fetch_result.metadata_json,
+                    **stored.metadata_json,
+                },
+            }
+        )
+
+        deterministic = self.deterministic_extractor.extract(
+            source=source,
+            content=fetch_result.content,
+            content_type=fetch_result.content_type,
+            title=fetch_result.title,
+        )
+        payload = deterministic.payload
+
+        if payload.confidence_score < source.confidence_threshold:
+            payload = self.llm_fallback_extractor.extract(
+                source=source,
+                text_content=deterministic.text_content,
+                fallback_title=fetch_result.title,
             )
-            await self.repo.rollback()
-            _, quarantined = await self.gateway.mark_source_failure(
-                source_id=source.id, reason=str(exc)
+
+        validated_payload = NormalizedProgramPayload.model_validate(payload.model_dump(mode="json"))
+        semantic_hash = self.diff_engine.compute_semantic_hash(validated_payload)
+
+        previous_item = await self.repo.get_last_completed_item_for_source(source.id)
+        previous_hash = previous_item.semantic_hash_sha256 if previous_item else None
+
+        previous_program_version = None
+        country = await self.repo.get_country_by_code(validated_payload.country_code)
+        if country is not None:
+            program = await self.repo.get_program_by_country_and_code(
+                country_id=country.id,
+                code=validated_payload.program_code,
             )
-            item = await self.repo.get_run_item(run_item_id)
-            if item is not None:
-                if quarantined:
-                    await self.repo.mark_run_item_quarantined(item, error_message=str(exc))
-                else:
-                    await self.repo.mark_run_item_failed(item, error_message=str(exc))
-                await self.repo.commit()
-            raise
+            if program is not None:
+                previous_program_version = await self.repo.get_latest_program_version_with_rules(
+                    program.id
+                )
+
+        diff_summary: DiffSummary = self.diff_engine.compare(
+            payload=validated_payload,
+            current_hash=semantic_hash,
+            previous_hash=previous_hash,
+            previous_program_version=previous_program_version,
+        )
+
+        await self.repo.replace_silver_sections(
+            run_item_id=item.id,
+            sections_payload=[
+                {
+                    **section,
+                    "semantic_hash_sha256": hashlib.sha256(
+                        section["text_content"].encode("utf-8")
+                    ).hexdigest(),
+                }
+                for section in validated_payload.sections
+            ],
+        )
+
+        can_auto_publish = (
+            not validated_payload.manual_review_required
+            and validated_payload.confidence_score >= source.confidence_threshold
+        )
+        publish_result = await self.publisher.publish(
+            source=source,
+            run_item=item,
+            payload=validated_payload,
+            diff_summary=diff_summary,
+            semantic_hash=semantic_hash,
+            raw_hash_sha256=raw_hash,
+            raw_storage_uri=stored.uri,
+            allow_publish=can_auto_publish,
+        )
+
+        status = IngestionRunItemStatus.completed
+        if not can_auto_publish:
+            status = IngestionRunItemStatus.manual_review
+        elif not diff_summary.changed:
+            status = IngestionRunItemStatus.skipped
+
+        await self.repo.mark_run_item_completed(
+            item,
+            status=status,
+            raw_hash_sha256=raw_hash,
+            semantic_hash_sha256=semantic_hash,
+            parser_used=validated_payload.parser_used,
+            parser_mode=validated_payload.parser_mode,
+            confidence_score=float(validated_payload.confidence_score),
+            manual_review_required=validated_payload.manual_review_required,
+            diff_summary_json=diff_summary.model_dump(),
+            metadata_json={
+                "fetch_etag": fetch_result.etag,
+                "fetch_last_modified": fetch_result.last_modified,
+                "publish": publish_result,
+            },
+        )
+        await self.repo.reset_source_health(source)
+        await self.repo.commit()
+        return status
+
+    async def _handle_processing_error(
+        self,
+        exc: Exception,
+        run_item_id: UUID,
+        source: object,
+    ) -> None:
+        logger.exception(
+            "ingestion_run_item_failed",
+            extra={"run_item_id": str(run_item_id), "source_key": source.source_key},
+        )
+        await self.repo.rollback()
+        _, quarantined = await self.gateway.mark_source_failure(
+            source_id=source.id, reason=str(exc)
+        )
+        item = await self.repo.get_run_item(run_item_id)
+        if item is not None:
+            if quarantined:
+                await self.repo.mark_run_item_quarantined(item, error_message=str(exc))
+            else:
+                await self.repo.mark_run_item_failed(item, error_message=str(exc))
+            await self.repo.commit()
 
     async def finalize_run(self, run_id: UUID) -> IngestionRunRead:
         run = await self.repo.get_run(run_id)

@@ -316,16 +316,11 @@ class BillingService:
         should_count_conversion = plan.code == self.settings.pro_plan_code and (
             existing is None or existing.plan_id != plan.id
         )
-        if existing is not None:
-            user_id = existing.user_id
-        else:
-            metadata = subscription_object.get("metadata", {}) or {}
-            raw_user_id = user_id_hint or metadata.get("user_id")
-            if not raw_user_id:
-                raise ValueError(
-                    "Cannot resolve user for subscription event without metadata.user_id"
-                )
-            user_id = UUID(str(raw_user_id))
+        user_id = self._resolve_user_id_from_subscription(
+            existing=existing,
+            user_id_hint=user_id_hint,
+            subscription_object=subscription_object,
+        )
 
         now = datetime.now(UTC)
         started_at = self._from_unix(subscription_object.get("start_date")) or now
@@ -353,6 +348,36 @@ class BillingService:
         if should_count_conversion:
             increment_free_to_pro_conversion()
 
+        await self._apply_entitlements_for_status(
+            status_value=status_value,
+            user_id=user_id,
+            subscription_id=subscription.id,
+            plan=plan,
+        )
+
+    async def _resolve_user_id_from_subscription(
+        self,
+        *,
+        existing: object | None,
+        user_id_hint: str | None,
+        subscription_object: dict,
+    ) -> UUID:
+        if existing is not None:
+            return existing.user_id
+        metadata = subscription_object.get("metadata", {}) or {}
+        raw_user_id = user_id_hint or metadata.get("user_id")
+        if not raw_user_id:
+            raise ValueError("Cannot resolve user for subscription event without metadata.user_id")
+        return UUID(str(raw_user_id))
+
+    async def _apply_entitlements_for_status(
+        self,
+        *,
+        status_value: SubscriptionStatus,
+        user_id: UUID,
+        subscription_id: UUID,
+        plan: Plan,
+    ) -> None:
         if status_value in {
             SubscriptionStatus.active,
             SubscriptionStatus.trialing,
@@ -361,7 +386,7 @@ class BillingService:
             await self._apply_plan_entitlements(
                 user_id=user_id,
                 plan=plan,
-                subscription_id=subscription.id,
+                subscription_id=subscription_id,
             )
         else:
             free_plan = await self.repo.get_plan_by_code(self.settings.free_plan_code)
@@ -370,7 +395,7 @@ class BillingService:
             await self._apply_plan_entitlements(
                 user_id=user_id,
                 plan=free_plan,
-                subscription_id=subscription.id,
+                subscription_id=subscription_id,
             )
 
     async def _resolve_plan_from_subscription_payload(self, subscription_object: dict) -> Plan:

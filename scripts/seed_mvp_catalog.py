@@ -72,127 +72,138 @@ async def seed_mvp_catalog(db: AsyncSession) -> dict[str, int]:
             if changed:
                 summary["countries_updated"] += 1
 
-        for program_data in country_data["programs"]:
-            program = await db.scalar(
-                select(ImmigrationProgram).where(
-                    and_(
-                        ImmigrationProgram.country_id == country.id,
-                        ImmigrationProgram.code == program_data["code"],
-                    )
-                )
-            )
-            if program is None:
-                program = ImmigrationProgram(
-                    country_id=country.id,
-                    code=program_data["code"],
-                    name=program_data["name"],
-                    description=program_data["description"],
-                    is_active=True,
-                )
-                db.add(program)
-                summary["programs_created"] += 1
-                await db.flush()
-            else:
-                changed = False
-                if program.name != program_data["name"]:
-                    program.name = program_data["name"]
-                    changed = True
-                if program.description != program_data["description"]:
-                    program.description = program_data["description"]
-                    changed = True
-                if not program.is_active:
-                    program.is_active = True
-                    changed = True
-                if changed:
-                    summary["programs_updated"] += 1
-
-            program_version = await db.scalar(
-                select(ProgramVersion).where(
-                    and_(
-                        ProgramVersion.program_id == program.id,
-                        ProgramVersion.version == program_data["version"],
-                    )
-                )
-            )
-            if program_version is None:
-                program_version = ProgramVersion(
-                    program_id=program.id,
-                    version=program_data["version"],
-                    status=ProgramVersionStatus.draft,
-                    effective_from=effective_from,
-                    effective_to=None,
-                )
-                db.add(program_version)
-                summary["program_versions_created"] += 1
-                await db.flush()
-            elif program_version.effective_from != effective_from:
-                program_version.effective_from = effective_from
-                summary["program_versions_updated"] += 1
-
-            for source in program_data["sources"]:
-                source_seed = SourceRegistrySeed(
-                    source_key=source["source_key"],
-                    country_code=country_data["code"],
-                    country_name=country_data["name"],
-                    program_code=program_data["code"],
-                    program_name=program_data["name"],
-                    source_type=source["source_type"],
-                    source_url=source["source_url"],
-                    robots_url=source["robots_url"],
-                    terms_url=source["terms_url"],
-                    schedule_cron=source["schedule_cron"],
-                    metadata_json={
-                        "seed": "mvp_2026_02",
-                        "official_source": True,
-                        "priority_rank": country_data["priority_rank"],
-                    },
-                )
-                source_row = await repo.upsert_source_seed(source_seed)
-                summary["source_registry_created_or_updated"] += 1
-
-                source_document = await db.scalar(
-                    select(SourceDocument).where(
-                        and_(
-                            SourceDocument.program_version_id == program_version.id,
-                            SourceDocument.source_url == source["source_url"],
-                        )
-                    )
-                )
-                if source_document is None:
-                    db.add(
-                        SourceDocument(
-                            source_id=source_row.id,
-                            ingestion_run_item_id=None,
-                            program_version_id=program_version.id,
-                            title=source["document_title"],
-                            source_url=source["source_url"],
-                            checksum_sha256=None,
-                            raw_storage_uri=None,
-                            published_at=None,
-                            metadata_json={
-                                "seed": "mvp_2026_02",
-                                "source_key": source["source_key"],
-                                "country_code": country_data["code"],
-                                "program_code": program_data["code"],
-                                "official_source": True,
-                            },
-                        )
-                    )
-                    summary["source_documents_created"] += 1
-                else:
-                    source_document.source_id = source_row.id
-                    source_document.title = source["document_title"]
-                    source_document.metadata_json = {
-                        "seed": "mvp_2026_02",
-                        "source_key": source["source_key"],
-                        "country_code": country_data["code"],
-                        "program_code": program_data["code"],
-                        "official_source": True,
-                    }
-                    summary["source_documents_updated"] += 1
+        await _seed_programs_for_country(db, repo, country, country_data, effective_from, summary)
 
     await db.commit()
     return summary
+
+
+async def _seed_programs_for_country(
+    db: AsyncSession,
+    repo: IngestionRepository,
+    country: Country,
+    country_data: dict,
+    effective_from: datetime,
+    summary: dict[str, int],
+) -> None:
+    for program_data in country_data["programs"]:
+        program = await db.scalar(
+            select(ImmigrationProgram).where(
+                and_(
+                    ImmigrationProgram.country_id == country.id,
+                    ImmigrationProgram.code == program_data["code"],
+                )
+            )
+        )
+        if program is None:
+            program = ImmigrationProgram(
+                country_id=country.id,
+                code=program_data["code"],
+                name=program_data["name"],
+                description=program_data["description"],
+                is_active=True,
+            )
+            db.add(program)
+            summary["programs_created"] += 1
+            await db.flush()
+        else:
+            changed = False
+            if program.name != program_data["name"]:
+                program.name = program_data["name"]
+                changed = True
+            if program.description != program_data["description"]:
+                program.description = program_data["description"]
+                changed = True
+            if not program.is_active:
+                program.is_active = True
+                changed = True
+            if changed:
+                summary["programs_updated"] += 1
+
+        program_version = await db.scalar(
+            select(ProgramVersion).where(
+                and_(
+                    ProgramVersion.program_id == program.id,
+                    ProgramVersion.version == program_data["version"],
+                )
+            )
+        )
+        if program_version is None:
+            program_version = ProgramVersion(
+                program_id=program.id,
+                version=program_data["version"],
+                status=ProgramVersionStatus.draft,
+                effective_from=effective_from,
+                effective_to=None,
+            )
+            db.add(program_version)
+            summary["program_versions_created"] += 1
+            await db.flush()
+        elif program_version.effective_from != effective_from:
+            program_version.effective_from = effective_from
+            summary["program_versions_updated"] += 1
+
+        for source in program_data["sources"]:
+            source_seed = SourceRegistrySeed(
+                source_key=source["source_key"],
+                country_code=country_data["code"],
+                country_name=country_data["name"],
+                program_code=program_data["code"],
+                program_name=program_data["name"],
+                source_type=source["source_type"],
+                source_url=source["source_url"],
+                robots_url=source["robots_url"],
+                terms_url=source["terms_url"],
+                schedule_cron=source["schedule_cron"],
+                metadata_json={
+                    "seed": "mvp_2026_02",
+                    "official_source": True,
+                    "priority_rank": country_data["priority_rank"],
+                },
+            )
+            source_row = await repo.upsert_source_seed(source_seed)
+            summary["source_registry_created_or_updated"] += 1
+
+            source_document = await db.scalar(
+                select(SourceDocument).where(
+                    and_(
+                        SourceDocument.program_version_id == program_version.id,
+                        SourceDocument.source_url == source["source_url"],
+                    )
+                )
+            )
+            if source_document is None:
+                db.add(
+                    SourceDocument(
+                        source_id=source_row.id,
+                        ingestion_run_item_id=None,
+                        program_version_id=program_version.id,
+                        title=source["document_title"],
+                        source_url=source["source_url"],
+                        checksum_sha256=None,
+                        raw_storage_uri=None,
+                        published_at=None,
+                        metadata_json={
+                            "seed": "mvp_2026_02",
+                            "source_key": source["source_key"],
+                            "country_code": country_data["code"],
+                            "program_code": program_data["code"],
+                            "official_source": True,
+                        },
+                    )
+                )
+                summary["source_documents_created"] += 1
+            else:
+                source_document.source_id = source_row.id
+                source_document.title = source["document_title"]
+                source_document.metadata_json = {
+                    "seed": "mvp_2026_02",
+                    "source_key": source["source_key"],
+                    "country_code": country_data["code"],
+                    "program_code": program_data["code"],
+                    "official_source": True,
+                }
+                summary["source_documents_updated"] += 1
 
 
 async def run_seed() -> dict[str, int]:

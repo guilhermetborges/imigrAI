@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 
 from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import AsyncSessionLocal
 from apps.assessments.fixtures.mvp_rules import MVP_RULE_FIXTURES
@@ -83,74 +84,82 @@ async def _seed_fixtures(fixtures: dict[str, dict]) -> None:
                 await db.flush()
 
             for group_data in fixture["rule_groups"]:
-                rule_group = await db.scalar(
-                    select(RuleGroup).where(
-                        and_(
-                            RuleGroup.program_version_id == program_version.id,
-                            RuleGroup.code == group_data["code"],
-                        )
-                    )
-                )
-                if rule_group is None:
-                    rule_group = RuleGroup(
-                        program_version_id=program_version.id,
-                        code=group_data["code"],
-                        name=group_data["name"],
-                        priority=group_data["priority"],
-                        match_operator=RuleGroupMatchOperator(group_data["match_operator"]),
-                        is_active=True,
-                    )
-                    db.add(rule_group)
-                    await db.flush()
-
-                for condition_data in group_data["conditions"]:
-                    existing_condition = await db.scalar(
-                        select(RuleCondition).where(
-                            and_(
-                                RuleCondition.rule_group_id == rule_group.id,
-                                RuleCondition.field_key == condition_data["field_key"],
-                                RuleCondition.operator == RuleOperator(condition_data["operator"]),
-                                RuleCondition.condition_order == condition_data["condition_order"],
-                            )
-                        )
-                    )
-                    if existing_condition is not None:
-                        continue
-
-                    db.add(
-                        RuleCondition(
-                            rule_group_id=rule_group.id,
-                            field_key=condition_data["field_key"],
-                            operator=RuleOperator(condition_data["operator"]),
-                            value_json=condition_data["value_json"],
-                            condition_order=condition_data["condition_order"],
-                            is_required=condition_data["is_required"],
-                        )
-                    )
-
-                for outcome_data in group_data["outcomes"]:
-                    existing_outcome = await db.scalar(
-                        select(RuleOutcome).where(
-                            and_(
-                                RuleOutcome.rule_group_id == rule_group.id,
-                                RuleOutcome.outcome_code == outcome_data["outcome_code"],
-                            )
-                        )
-                    )
-                    if existing_outcome is not None:
-                        continue
-
-                    db.add(
-                        RuleOutcome(
-                            rule_group_id=rule_group.id,
-                            score_delta=outcome_data["score_delta"],
-                            is_blocking=outcome_data["is_blocking"],
-                            explanation_message=outcome_data["explanation_message"],
-                            outcome_code=outcome_data["outcome_code"],
-                        )
-                    )
+                await _seed_rule_group(db, program_version, group_data)
 
         await db.commit()
+
+
+async def _seed_rule_group(
+    db: AsyncSession,
+    program_version: ProgramVersion,
+    group_data: dict,
+) -> None:
+    rule_group = await db.scalar(
+        select(RuleGroup).where(
+            and_(
+                RuleGroup.program_version_id == program_version.id,
+                RuleGroup.code == group_data["code"],
+            )
+        )
+    )
+    if rule_group is None:
+        rule_group = RuleGroup(
+            program_version_id=program_version.id,
+            code=group_data["code"],
+            name=group_data["name"],
+            priority=group_data["priority"],
+            match_operator=RuleGroupMatchOperator(group_data["match_operator"]),
+            is_active=True,
+        )
+        db.add(rule_group)
+        await db.flush()
+
+    for condition_data in group_data["conditions"]:
+        existing_condition = await db.scalar(
+            select(RuleCondition).where(
+                and_(
+                    RuleCondition.rule_group_id == rule_group.id,
+                    RuleCondition.field_key == condition_data["field_key"],
+                    RuleCondition.operator == RuleOperator(condition_data["operator"]),
+                    RuleCondition.condition_order == condition_data["condition_order"],
+                )
+            )
+        )
+        if existing_condition is not None:
+            continue
+
+        db.add(
+            RuleCondition(
+                rule_group_id=rule_group.id,
+                field_key=condition_data["field_key"],
+                operator=RuleOperator(condition_data["operator"]),
+                value_json=condition_data["value_json"],
+                condition_order=condition_data["condition_order"],
+                is_required=condition_data["is_required"],
+            )
+        )
+
+    for outcome_data in group_data["outcomes"]:
+        existing_outcome = await db.scalar(
+            select(RuleOutcome).where(
+                and_(
+                    RuleOutcome.rule_group_id == rule_group.id,
+                    RuleOutcome.outcome_code == outcome_data["outcome_code"],
+                )
+            )
+        )
+        if existing_outcome is not None:
+            continue
+
+        db.add(
+            RuleOutcome(
+                rule_group_id=rule_group.id,
+                score_delta=outcome_data["score_delta"],
+                is_blocking=outcome_data["is_blocking"],
+                explanation_message=outcome_data["explanation_message"],
+                outcome_code=outcome_data["outcome_code"],
+            )
+        )
 
 
 async def seed() -> None:
